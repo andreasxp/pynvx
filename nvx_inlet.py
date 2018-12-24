@@ -1,13 +1,19 @@
 from nvx import Device
 from nvx.structs import Rate
+import time
+from vector import Vector
+import numpy as np
+from threading import Thread, Lock
 
 
 class NVXInlet:
-    def __init__(self, index, fs, eeg_channels, aux_channels):
+    def __init__(self, index, fs, eeg_channels, aux_channels, delay_tolerance=0.0, autostart=False):
         self.device = Device(index)
         self.eeg_channels = eeg_channels
         self.aux_channels = aux_channels
+        self.delay_tolerance = delay_tolerance
 
+        # Downsampling -------------------------------------------------------------------------------------------------
         self.total_counter = 0
         self.accepted_counter = 0
 
@@ -31,8 +37,49 @@ class NVXInlet:
         settings.rate = sample_rate
         self.device.set_settings(settings)
 
-        # Maybe you should not start this right away, and instead add start and stop methods
+        # Data collecting ----------------------------------------------------------------------------------------------
+        self.buffer = Vector(np.int32)
+        self.buffer_lock = Lock()
+        self.collector_thread = Thread(target=self._collect)
+        self.stop_flag = False
+
+        # Autostart ----------------------------------------------------------------------------------------------------
+        if autostart:
+            self.start()
+
+    def start(self):
         self.device.start()
+        self.collector_thread.start()
+
+    def stop(self):
+        self.stop_flag = True
+        self.device.stop()
+        self.collector_thread.join()
+
+    def _collect(self):
+        while not self.stop_flag:
+            # Get new sample (returns None if no samples left)
+            sample = self.device.get_data()
+            if sample is not None and self._process_sample():
+                self.buffer_lock.acquire()
+                try:
+                    # Part of a matrix/data sample with only some select channels
+                    self.buffer.reserve(
+                        self.buffer.size +
+                        len(self.eeg_channels) +
+                        len(self.aux_channels))
+
+                    # Push all required eeg channels' data
+                    for eeg_channel in self.eeg_channels:
+                        self.buffer.append(sample.eeg_data(eeg_channel))
+
+                    # Push all required aux channels' data
+                    for aux_channel in self.aux_channels:
+                        self.buffer.append(sample.aux_data(aux_channel))
+                finally:
+                    self.buffer_lock.release()
+            if sample is None and self.delay_tolerance > 0:
+                time.sleep(self.delay_tolerance)
 
     # Process a sample
     # Increments necessary counters, returns True if sample to be accepted
@@ -52,28 +99,18 @@ class NVXInlet:
             return False
 
     def pull_chunk(self):
-        result = []
-
-        # Get new sample (returns None if no samples left)
-        sample = self.device.get_data()
-        while sample is not None:
-            if self._process_sample():
-                # Part of a matrix/data sample with only some select channels
-                trimmed_sample = []
-
-                # Push all required eeg channels' data
-                for eeg_channel in self.eeg_channels:
-                    trimmed_sample.append(sample.eeg_data(eeg_channel))
-
-                # Push all required aux channels' data
-                for aux_channel in self.aux_channels:
-                    trimmed_sample.append(sample.aux_data(aux_channel))
-
-                # Append sample to the matrix
-                result.append(trimmed_sample)
-
-            # Get new sample
-            sample = self.device.get_data()
-
+        self.buffer_lock.acquire()
+        result = None
+        try:
+            sample_len = len(self.eeg_channels) + len(self.aux_channels)
+            samples = len(self.buffer) // sample_len
+            result = self.buffer.data[0:self.buffer.size].reshape((samples, sample_len))
+            self.buffer = Vector(np.int32)
+        finally:
+            self.buffer_lock.release()
         return result
+
+    def __del__(self):
+        self.stop()
+
 
