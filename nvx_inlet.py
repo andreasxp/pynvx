@@ -1,16 +1,12 @@
 from nvx import Device
 from nvx.structs import Rate
 import time
-from vector import Vector
-import numpy as np
 from threading import Thread, Lock
 
 
 class NVXInlet:
-    def __init__(self, index, fs, eeg_channels, aux_channels, delay_tolerance=0.0, autostart=False):
+    def __init__(self, index, fs, delay_tolerance=0.0):
         self.device = Device(index)
-        self.eeg_channels = eeg_channels
-        self.aux_channels = aux_channels
         self.delay_tolerance = delay_tolerance
 
         # Downsampling -------------------------------------------------------------------------------------------------
@@ -38,14 +34,10 @@ class NVXInlet:
         self.device.set_settings(settings)
 
         # Data collecting ----------------------------------------------------------------------------------------------
-        self.buffer = Vector(np.int32)
+        self.buffer = []
         self.buffer_lock = Lock()
         self.collector_thread = Thread(target=self._collect)
         self.stop_flag = False
-
-        # Autostart ----------------------------------------------------------------------------------------------------
-        if autostart:
-            self.start()
 
     def start(self):
         self.device.start()
@@ -63,19 +55,7 @@ class NVXInlet:
             if sample is not None and self._process_sample():
                 self.buffer_lock.acquire()
                 try:
-                    # Part of a matrix/data sample with only some select channels
-                    self.buffer.reserve(
-                        self.buffer.size +
-                        len(self.eeg_channels) +
-                        len(self.aux_channels))
-
-                    # Push all required eeg channels' data
-                    for eeg_channel in self.eeg_channels:
-                        self.buffer.append(sample.eeg_data(eeg_channel))
-
-                    # Push all required aux channels' data
-                    for aux_channel in self.aux_channels:
-                        self.buffer.append(sample.aux_data(aux_channel))
+                    self.buffer.append(sample)
                 finally:
                     self.buffer_lock.release()
             if sample is None and self.delay_tolerance > 0:
@@ -102,15 +82,10 @@ class NVXInlet:
         self.buffer_lock.acquire()
         result = None
         try:
-            sample_len = len(self.eeg_channels) + len(self.aux_channels)
-            samples = len(self.buffer) // sample_len
-            result = self.buffer.data[0:self.buffer.size].reshape((samples, sample_len))
-            self.buffer = Vector(np.int32)
+            result, self.buffer = self.buffer, []
         finally:
             self.buffer_lock.release()
         return result
 
     def __del__(self):
         self.stop()
-
-

@@ -25,6 +25,7 @@ class Device:
         """
 
         self.index = index
+        # Opening device -----------------------------------------------------------------------------------------------
         if 0 <= index < get_count():
             self.device_handle = raw.NVXOpen(index)
         else:
@@ -36,6 +37,9 @@ class Device:
 
         # This function has side effects that are required for the device to work properly
         self.get_voltages()
+        # --------------------------------------------------------------------------------------------------------------
+
+        self.is_running = False
 
     def get_version(self):
         """Get version info about NVX
@@ -83,12 +87,20 @@ class Device:
         return prop
 
     def start(self):
-        """Start data acquisition"""
-        handle_error(raw.NVXStart(self.device_handle))
+        """Start data acquisition
+        Starts the acquiring data process on the device. If data acquisition was already running, does nothing.
+        """
+        if not self.is_running:
+            handle_error(raw.NVXStart(self.device_handle))
+            self.is_running = True
 
     def stop(self):
-        """Stop data acquisition"""
-        handle_error(raw.NVXStop(self.device_handle))
+        """Stop data acquisition
+        Stops the device from acquiring data. If data acquisition was not running, does nothing.
+        """
+        if self.is_running:
+            handle_error(raw.NVXStop(self.device_handle))
+            self.is_running = False
 
     def get_data(self):
         """Get acquisition data
@@ -640,4 +652,7 @@ class Device:
         handle_error(raw.NVXSetPll(self.device_handle, ctypes.byref(pll)))
 
     def __del__(self):
-        handle_error(raw.NVXClose(self.index))
+        # Errors in the destructor are ignored
+        if self.is_running:
+            raw.NVXStop(self.device_handle)
+        raw.NVXClose(self.index)

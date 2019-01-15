@@ -3,6 +3,7 @@ NVX Data sample
 
 """
 import ctypes
+from .channel_names import eeg_channel, aux_channel
 
 
 # Sample holds one data sample from a Device
@@ -52,6 +53,29 @@ class Sample:
 
         result = ctypes.cast(self.raw_data.value + self.count_eeg*4 + index*4, ctypes.POINTER(ctypes.c_int))[0]
         return result
+
+    def __getitem__(self, name):
+        """Get data from an eeg or aux channel by name
+
+        Parameters
+        ----------
+        name : str
+            Name of an EEG or AUX channel that is present in channel_names.py
+
+        Raises
+        ------
+        KeyError
+            if name is not a valid eeg/aux channel name
+
+        Returns
+        -------
+        int
+            requested data
+        """
+        if name in eeg_channel:
+            return self.eeg_data(eeg_channel[name])
+        else:
+            return self.aux_data(aux_channel[name])
 
     def _status(self):
         """Get the digital status
