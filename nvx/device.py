@@ -9,6 +9,7 @@ from .base import raw, get_count
 from .utility import handle_error, set_bit
 from .sample import Sample
 from .impedance import Impedance
+from .triggers_view import TriggersView
 
 
 class Device:
@@ -41,8 +42,9 @@ class Device:
 
         self.is_running = False
 
-    def get_version(self):
-        """Get version info about NVX
+    @property
+    def version(self):
+        """Version info about NVX
 
         Returns
         -------
@@ -53,7 +55,8 @@ class Device:
         handle_error(raw.NVXGetVersion(self.device_handle, ctypes.byref(ver)))
         return ver
 
-    def get_settings(self):
+    @property
+    def settings(self):
         """Get device acquisition settings
 
         Returns
@@ -65,17 +68,19 @@ class Device:
         handle_error(raw.NVXGetSettings(self.device_handle, ctypes.byref(settings)))
         return settings
 
-    def set_settings(self, settings):
+    @settings.setter
+    def settings(self, value):
         """Set device acquisition settings
         
         Parameters
         ----------
-        settings : structs.Settings
+        value : structs.Settings
         """
-        handle_error(raw.NVXSetSettings(self.device_handle, ctypes.byref(settings)))
+        handle_error(raw.NVXSetSettings(self.device_handle, ctypes.byref(value)))
 
-    def get_property(self):
-        """Get device acquisition property
+    @property
+    def properties(self):
+        """Get device acquisition properties
 
         Returns
         -------
@@ -102,6 +107,8 @@ class Device:
             handle_error(raw.NVXStop(self.device_handle))
             self.is_running = False
 
+    # TODO: Add threads
+    # TODO: make pythonic
     def get_data(self):
         """Get acquisition data
         Returns a data sample or None, if there are no more samples generated.
@@ -116,7 +123,7 @@ class Device:
         sample.Sample or None
             possible data sample. See sample.py
         """
-        prop = self.get_property()
+        prop = self.properties
         buffer_size_bytes = prop.count_eeg * 4 + prop.count_aux * 4 + 8
         buffer = ctypes.cast(ctypes.create_string_buffer(buffer_size_bytes), ctypes.c_void_p)
 
@@ -127,7 +134,8 @@ class Device:
 
         return Sample(buffer, prop.count_eeg, prop.count_aux)
 
-    def get_data_status(self):
+    @property
+    def data_status(self):
         """Get device acquisition data status
 
         Returns
@@ -139,7 +147,8 @@ class Device:
         handle_error(raw.NVXGetDataStatus(self.device_handle, ctypes.byref(status)))
         return status
 
-    def get_error_status(self):
+    @property
+    def error_status(self):
         """Get device acquisition error status
 
         Returns
@@ -151,97 +160,9 @@ class Device:
         handle_error(raw.NVXGetErrorStatus(self.device_handle, ctypes.byref(status)))
         return status
 
-    def _get_triggers(self):
-        """Get state of triggers (input and output)
-        This function is for internal use only. Consider using get_input_trigger or get_output_trigger instead.
-
-        Returns
-        -------
-        ctypes.c_uint
-            triggers states, folded into 32 bits: 8-bit inputs (bits 0 - 7) + 8-bit outputs (bits 8 - 15) + 16 MSB reserved bits.
-        """
-        triggers = ctypes.c_uint(0)
-        handle_error(raw.NVXGetTriggers(self.device_handle, ctypes.byref(triggers)))
-        return triggers
-
-    def get_input_trigger(self, index):
-        """Get state of an input trigger
-        
-        Parameters
-        ----------
-        index : int
-        
-        Raises
-        ------
-        ValueError
-            if index is not in range [0, 8)
-        
-        Returns
-        -------
-        bool
-            triggers state
-        """
-        if not 0 <= index < 8:
-            raise ValueError("invalid index " + str(index) + ": there are 8 input triggers")
-
-        # TODO: verify bit ordering (current: lowest first)
-        # TODO: ask if triggers are the same as channels in Sample
-        return bool(self._get_triggers() & (1 << index))
-
-    def get_output_trigger(self, index):
-        """Get state of an output trigger
-        
-        Parameters
-        ----------
-        index : int
-        
-        Raises
-        ------
-        ValueError
-            if index is not in range [0, 8)
-        
-        Returns
-        -------
-        bool
-            triggers state
-        """
-        if not 0 <= index < 8:
-            raise ValueError("invalid index " + str(index) + ": there are 8 output triggers")
-
-        # TODO: verify bit ordering (current: lowest first)
-        # TODO: ask if triggers are the same as channels in Sample
-        return bool(self._get_triggers() & (1 << 8 << index))
-
-    def _set_triggers(self, triggers):
-        """Set state of triggers (output only)
-        This function is for internal use only. Consider using set_output_trigger instead.
-
-        Parameters
-        ----------
-        triggers : ctypes.c_uint
-            triggers states, folded into 32 bits: 8-bit inputs (bits 0 - 7) + 8-bit outputs (bits 8 - 15) + 16 MSB reserved bits.
-        """
-        handle_error(raw.NVXSetTriggers(self.device_handle, ctypes.c_uint(triggers)))
-
-    def set_output_trigger(self, index, value):
-        """Set state of an output trigger
-        
-        Parameters
-        ----------
-        index : int
-        value : bool
-        
-        Raises
-        ------
-        ValueError
-            if index is not in range [0, 8)
-        """
-        if not 0 <= index < 8:
-            raise ValueError("invalid index " + str(index) + ": there are 8 output triggers")
-
-        # TODO: verify bit ordering (current: lowest first)
-        triggers = self._get_triggers()
-        self._set_triggers(set_bit(triggers, index, value))
+    @property
+    def triggers(self):
+        return TriggersView(self.device_handle)
 
     def get_aux_gain(self):
         """Get aux gain

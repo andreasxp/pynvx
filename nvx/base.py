@@ -5,8 +5,6 @@ Base functions, and the raw DLL
 import ctypes
 import os
 from .utility import handle_error, is_64bit
-
-# Expose important parts as members nvx
 from .structs import Version
 
 """Raw dll for direct calls"""
