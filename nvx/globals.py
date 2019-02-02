@@ -10,3 +10,5 @@ EL_LED_YELLOW = EL_LED_GREEN | EL_LED_RED
 """Electrodes analog switch definition"""
 EL_SWITCH_ON = 1 << 2  # input analog switch to GND
 EL_SWITCH_OFF = 0 << 2  # input analog switch to input
+
+PLL_FREQ_MAX = int(27e6)

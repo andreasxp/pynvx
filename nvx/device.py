@@ -6,10 +6,11 @@ import ctypes
 from .structs import Version, Settings, Property, DataStatus, ErrorStatus, Gain, PowerSave, \
     ImpedanceSetup, ImpedanceMode, ImpedanceSettings, Voltages, FrequencyBandwidth, Pll
 from .base import raw, get_count
-from .utility import handle_error, set_bit
+from .utility import handle_error
 from .sample import Sample
 from .impedance import Impedance
-from .triggers_view import TriggersView
+from .trigger_states_view import TriggerStatesView
+from .channel_states_view import ChannelStatesView
 
 
 class Device:
@@ -24,8 +25,6 @@ class Device:
         index : int
             device index in the system. Must be in range [0, nvx.get_count())
         """
-
-        self.index = index
         # Opening device -----------------------------------------------------------------------------------------------
         if 0 <= index < get_count():
             self.device_handle = raw.NVXOpen(index)
@@ -36,11 +35,17 @@ class Device:
         if self.device_handle == 0:
             raise RuntimeError("Could not create a device: NVXOpen returned NULL")
 
-        # This function has side effects that are required for the device to work properly
-        self.get_voltages()
-        # --------------------------------------------------------------------------------------------------------------
+        # This getter has side effects that are required for the device to work properly
+        self.voltages
 
-        self.is_running = False
+        # Member variables ---------------------------------------------------------------------------------------------
+        self.index = index
+        self._is_running = False  # Not for external use. Use start(), stop(), or is_running property instead.
+        self._active_shield_gain = 100
+
+    @property
+    def is_running(self):
+        return self._is_running
 
     @property
     def version(self):
@@ -97,7 +102,7 @@ class Device:
         """
         if not self.is_running:
             handle_error(raw.NVXStart(self.device_handle))
-            self.is_running = True
+            self._is_running = True
 
     def stop(self):
         """Stop data acquisition
@@ -105,7 +110,7 @@ class Device:
         """
         if self.is_running:
             handle_error(raw.NVXStop(self.device_handle))
-            self.is_running = False
+            self._is_running = False
 
     # TODO: Add threads
     # TODO: make pythonic
@@ -161,10 +166,18 @@ class Device:
         return status
 
     @property
-    def triggers(self):
-        return TriggersView(self.device_handle)
+    def trigger_states(self):
+        """Provides a view into device's trigger states
 
-    def get_aux_gain(self):
+        Returns
+        -------
+        TriggerStatesView
+            Triggers' view. See trigger_states_view.py
+        """
+        return TriggerStatesView(self)
+
+    @property
+    def aux_gain(self):
         """Get aux gain
 
         Returns
@@ -176,7 +189,8 @@ class Device:
         handle_error(raw.NVXGetAuxGain(self.device_handle, ctypes.byref(gain)))
         return gain
 
-    def set_aux_gain(self, gain):
+    @aux_gain.setter
+    def aux_gain(self, gain):
         """Set aux gain
 
         Parameters
@@ -186,7 +200,8 @@ class Device:
         """
         handle_error(raw.NVXSetAuxGain(self.device_handle, gain))
 
-    def get_power_save(self):
+    @property
+    def power_save(self):
         """Get power save mode
 
         Returns
@@ -194,21 +209,23 @@ class Device:
         structs.PowerSave
             power save value (0 or 1, as enum). See structs.py
         """
-        power_save = PowerSave()
-        handle_error(raw.NVXGetPowerSave(self.device_handle, ctypes.byref(power_save)))
-        return power_save
+        ps = PowerSave()
+        handle_error(raw.NVXGetPowerSave(self.device_handle, ctypes.byref(ps)))
+        return ps
 
-    def set_power_save(self, power_save):
+    @power_save.setter
+    def power_save(self, ps):
         """Set power save mode
 
         Parameters
         ----------
-        power_save : structs.PowerSave
+        ps : structs.PowerSave
             power save value (0 or 1, as enum). See structs.py
         """
-        handle_error(raw.NVXSetPowerSave(self.device_handle, PowerSave(power_save)))
+        handle_error(raw.NVXSetPowerSave(self.device_handle, PowerSave(ps)))
 
-    def get_impedance_data(self):
+    @property
+    def impedance_data(self):
         """Get impedance values for all EEG channels and ground in Ohm
         
         Remarks (notes):
@@ -225,7 +242,7 @@ class Device:
         impedance.Impedance
             channels impedance. See impedance.py
         """
-        prop = self.get_property()
+        prop = self.properties
         buffer_size = prop.count_eeg + 1
         buffer_size_bytes = buffer_size * 4
         buffer = (ctypes.c_uint * buffer_size)()
@@ -234,7 +251,8 @@ class Device:
 
         return Impedance(buffer, prop.count_eeg)
 
-    def get_impedance_setup(self):
+    @property
+    def impedance_setup(self):
         """Get setup for impedance mode
 
         Returns
@@ -242,21 +260,23 @@ class Device:
         structs.ImpedanceSetup
             impedance setup. See structs.py
         """
-        impedance_setup = ImpedanceSetup()
-        handle_error(raw.NVXImpedanceGetSetup(self.device_handle, ctypes.byref(impedance_setup)))
-        return impedance_setup
+        setup = ImpedanceSetup()
+        handle_error(raw.NVXImpedanceGetSetup(self.device_handle, ctypes.byref(setup)))
+        return setup
 
-    def set_impedance_setup(self, impedance_setup):
+    @impedance_setup.setter
+    def impedance_setup(self, setup):
         """Set setup for impedance mode
 
         Parameters
         ----------
-        impedance_setup : structs.ImpedanceSetup
+        setup : structs.ImpedanceSetup
             impedance setup. See structs.py
         """
-        handle_error(raw.NVXImpedanceSetSetup(self.device_handle, ctypes.byref(impedance_setup)))
+        handle_error(raw.NVXImpedanceSetSetup(self.device_handle, ctypes.byref(setup)))
 
-    def get_impedance_mode(self):
+    @property
+    def impedance_mode(self):
         """Get current impedance mode
 
         Returns
@@ -268,7 +288,8 @@ class Device:
         handle_error(raw.NVXImpedanceGetMode(self.device_handle, ctypes.byref(impedance_mode)))
         return impedance_mode
 
-    def set_impedance_mode(self, mode):
+    @impedance_mode.setter
+    def impedance_mode(self, mode):
         """Set current impedance mode
 
         Parameters
@@ -289,7 +310,7 @@ class Device:
         
         Parameters
         ----------
-        values : a list-like container of objects, convertible to ctypes.c_uint
+        values : a list-like container of objects, each convertible to ctypes.c_uint
             example - a list of int
         
         Warnings
@@ -304,7 +325,7 @@ class Device:
         - After a successful call to this function the device will execute this command:
         ~ 50 ms per 32 electrodes states changes from previous state
         """
-        prop = self.get_property()
+        prop = self.properties
         buffer_size = prop.count_eeg + 1
         buffer_size_bytes = buffer_size * 4
         buffer = (ctypes.c_uint * buffer_size)()
@@ -320,7 +341,8 @@ class Device:
         """
         handle_error(raw.NVXSetElectrodes(self.device_handle, None, 0))
 
-    def get_impedance_settings(self):
+    @property
+    def impedance_settings(self):
         """Get settings for impedance mode
 
         Returns
@@ -328,11 +350,12 @@ class Device:
         structs.ImpedanceSettings
             impedance settings. See structs.py
         """
-        impedance_settings = ImpedanceSettings()
-        handle_error(raw.NVXImpedanceGetSettings(self.device_handle, ctypes.byref(impedance_settings)))
-        return impedance_settings
+        settings = ImpedanceSettings()
+        handle_error(raw.NVXImpedanceGetSettings(self.device_handle, ctypes.byref(settings)))
+        return settings
 
-    def set_impedance_settings(self, settings):
+    @impedance_settings.setter
+    def impedance_settings(self, settings):
         """Set settings for impedance mode
 
         Parameters
@@ -342,7 +365,8 @@ class Device:
         """
         handle_error(raw.NVXImpedanceSetSettings(self.device_handle, ctypes.byref(settings)))
 
-    def get_voltages(self):
+    @property
+    def voltages(self):
         """Get voltages
 
         Returns
@@ -354,7 +378,19 @@ class Device:
         handle_error(raw.NVXGetVoltages(self.device_handle, ctypes.byref(voltages)))
         return voltages
 
-    def set_active_shield_gain(self, gain):
+    @property
+    def active_shield_gain(self):
+        """Get gain in ActiveShield mode
+
+        Returns
+        -------
+        int
+            Gain value
+        """
+        return self._active_shield_gain
+
+    @active_shield_gain.setter
+    def active_shield_gain(self, gain):
         """Set gain in ActiveShield mode
         
         Parameters
@@ -365,14 +401,16 @@ class Device:
         Raises
         ------
         ValueError
-            if gain is not in range [0, 100]
+            if gain is not in range [1, 100]
         """
         if not 1 <= gain <= 100:
             raise ValueError("gain must be in range [1, 100], got " + str(gain))
 
         handle_error(raw.NVXSetActiveShieldGain(self.device_handle, ctypes.c_uint(gain)))
+        self._active_shield_gain = gain
 
-    def get_polarization(self):
+    @property
+    def polarization(self):
         """Get polarization of the electrodes
 
         Returns
@@ -381,7 +419,7 @@ class Device:
             polarisation of electrodes
         """
         # TODO: ask how many electrodes there are (assuming count_eeg + GND)
-        prop = self.get_property()
+        prop = self.properties
         buffer_size = prop.count_eeg + 1
         buffer_size_bytes = buffer_size * ctypes.sizeof(ctypes.c_double)
         buffer = (ctypes.c_double * buffer_size)()
@@ -395,7 +433,8 @@ class Device:
 
         return result
 
-    def get_sample_rate_count(self):
+    @property
+    def sample_rate_count(self):
         """Get device sample rate count
 
         Returns
@@ -407,7 +446,8 @@ class Device:
         handle_error(raw.NVXGetSampeRateCount(self.device_handle, ctypes.byref(count)))
         return count
 
-    def get_frequency_bandwidth(self):
+    @property
+    def frequency_bandwidth(self):
         """Get frequency bandwidth
 
         Returns
@@ -416,7 +456,7 @@ class Device:
             frequency bandwidths. See structs.py
         """
         # TODO: ask how large the array should be (assuming count_eeg + GND)
-        prop = self.get_property()
+        prop = self.properties
         buffer_size = prop.count_eeg + 1
         buffer_size_bytes = buffer_size * ctypes.sizeof(FrequencyBandwidth)
         buffer = (FrequencyBandwidth * buffer_size)()
@@ -426,7 +466,8 @@ class Device:
         result = [buffer[i] for i in range(buffer_size)]
         return result
 
-    def _get_channel_states(self):
+    @property
+    def _channel_states(self):
         """Get enabled channels
         This function is not recommended for external use. Consider using get_eeg_channel_state or 
         get_aux_channel_state instead
@@ -436,141 +477,58 @@ class Device:
         list of bool
             channel states
         """
-        prop = self.get_property()
+        prop = self.properties
         buffer_size = prop.count_eeg + prop.count_aux
         buffer_size_bytes = buffer_size * ctypes.sizeof(ctypes.c_bool)
         buffer = (ctypes.c_bool * buffer_size)()
 
         handle_error(raw.NVXGetChannelsEnabled(self.device_handle, buffer, buffer_size_bytes))
-        
-        result = [bool(buffer[i]) for i in range(buffer_size)]
-        return result
 
-    def _set_channel_states(self, values):
+        return buffer
+
+    @_channel_states.setter
+    def _channel_states(self, values):
         """Set enabled channels
-        This function is not recommended for external use. Consider using set_eeg_channel_state or 
-        set_aux_channel_state instead
-        
+        This function is not recommended for external use. Consider using channel_states property instead.
+
+        Warnings
+        --------
+        This function assumes that the size of passed array is correct. Otherwise, some bad things can happen.
+
         Parameters
         ----------
-        values : a list-like container of objects, convertible to ctypes.c_bool
-            example - a list of bool
+        values : a ctypes array of ctypes.c_bool of size count_eeg+count_aux
+            values to set
         """
-        prop = self.get_property()
+        prop = self.properties
         buffer_size = prop.count_eeg + prop.count_aux
         buffer_size_bytes = buffer_size * ctypes.sizeof(ctypes.c_bool)
-        buffer = (ctypes.c_bool * buffer_size)()
 
-        for i in range(0, buffer_size):
-            buffer[i] = ctypes.c_bool(values[i])
+        handle_error(raw.NVXSetChannelsEnabled(self.device_handle, values, buffer_size_bytes))
 
-        handle_error(raw.NVXSetChannelsEnabled(self.device_handle, buffer, buffer_size_bytes))
+    @property
+    def channel_states(self):
+        """Get a nice and user-friendly view into channel states.
+        Returns channel states, that can be looked up either by name, or by an index.
 
-    def get_eeg_channel_state(self, index):
-        """Get the state of an eeg channel
-        
-        Parameters
-        ----------
-        index : int
-        
-        Raises
-        ------
-        ValueError
-            if index is not in range [0, count_eeg)
-            
         Returns
         -------
-        bool
-            channel state
+        ChannelStatesView
+            A view into channel states. See channel_states_view.py
         """
-        # TODO: verify that eeg and aux channels are in correct order (assuming eeg before aux)
-        prop = self.get_property()
-        if not 0 <= index < prop.count_eeg:
-            raise ValueError(
-                "no channel with index " + str(index) + " (only " + str(prop.count_eeg) + " eeg channels present)")
+        return ChannelStatesView(self)
 
-        return self._get_channel_states()[index]
-
-    def get_aux_channel_state(self, index):
-        """Get the state of an aux channel
-        
-        Parameters
-        ----------
-        index : int
-        
-        Raises
-        ------
-        ValueError
-            if index is not in range [0, count_aux)
-            
-        Returns
-        -------
-        bool
-            channel state
-        """
-        # TODO: verify that eeg and aux channels are in correct order (assuming eeg before aux)
-        prop = self.get_property()
-        if not 0 <= index < prop.count_aux:
-            raise ValueError(
-                "no channel with index " + str(index) + " (only " + str(prop.count_aux) + " aux channels present)")
-
-        return self._get_channel_states()[prop.count_eeg + index]
-
-    def set_eeg_channel_state(self, index, value):
-        """Set the state of an eeg channel
-        
-        Parameters
-        ----------
-        index : int
-        value : bool
-        
-        Raises
-        ------
-        ValueError
-            if index is not in range [0, count_eeg)
-        """
-        # TODO: verify that eeg and aux channels are in correct order (assuming eeg before aux)
-        prop = self.get_property()
-        if not 0 <= index < prop.count_eeg:
-            raise ValueError(
-                "no channel with index " + str(index) + " (only " + str(prop.count_eeg) + " eeg channels present)")
-
-        buffer = self._get_channel_states()
-        buffer[index] = ctypes.c_bool(value)
-        self._set_channel_states(buffer)
-
-    def set_aux_channel_state(self, index, value):
-        """Set the state of an aux channel
-        
-        Parameters
-        ----------
-        index : int
-        value : bool
-        
-        Raises
-        ------
-        ValueError
-            if index is not in range [0, count_aux)
-        """
-        # TODO: verify that eeg and aux channels are in correct order (assuming eeg before aux)
-        prop = self.get_property()
-        if not 0 <= index < prop.count_aux:
-            raise ValueError(
-                "no channel with index " + str(index) + " (only " + str(prop.count_aux) + " aux channels present)")
-
-        buffer = self._get_channel_states()
-        buffer[prop.count_eeg + index] = ctypes.c_bool(value)
-        self._set_channel_states(buffer)
-
-    def get_pll(self):
+    @property
+    def pll(self):
         # TODO: verify that NVXGetPll return type is error code (assuming it is)
         pll = Pll()
         handle_error(raw.NVXGetPll(self.device_handle, ctypes.byref(pll)))
         return pll
 
-    def set_pll(self, pll):
+    @pll.setter
+    def pll(self, value):
         # TODO: verify that NVXSetPll return type is error code (assuming it is)
-        handle_error(raw.NVXSetPll(self.device_handle, ctypes.byref(pll)))
+        handle_error(raw.NVXSetPll(self.device_handle, ctypes.byref(value)))
 
     def __del__(self):
         # Errors in the destructor are ignored
