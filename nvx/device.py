@@ -3,8 +3,11 @@ NVX hardware device
 
 """
 import ctypes
+from threading import Thread
+import time
+
 from .structs import Version, Settings, Property, DataStatus, ErrorStatus, Gain, PowerSave, \
-    ImpedanceSetup, ImpedanceMode, ImpedanceSettings, Voltages, FrequencyBandwidth, Pll
+    ImpedanceSetup, ImpedanceMode, ImpedanceSettings, Voltages, FrequencyBandwidth, Pll, Rate
 from .base import raw, get_count
 from .utility import handle_error
 from .sample import Sample
@@ -38,13 +41,28 @@ class Device:
         # This getter has side effects that are required for the device to work properly
         self.voltages
 
+        # Data collecting ----------------------------------------------------------------------------------------------
+        self._buffer = []
+        self._collector_thread = Thread(target=self._collect)
+        self._delay_tolerance = 0.01
+
         # Member variables ---------------------------------------------------------------------------------------------
-        self.index = index
+        self._index = index
         self._is_running = False  # Not for external use. Use start(), stop(), or is_running property instead.
         self._active_shield_gain = 100
 
+        # Data aquisition rate (hz). Not always the same as source_rate property.
+        # Not for external use. Use rate property instead.
+        self._rate = 10000
+
+    @property
+    def index(self):
+        """Get device index"""
+        return self._index
+
     @property
     def is_running(self):
+        """Get the state of the data acquisition process"""
         return self._is_running
 
     @property
@@ -101,26 +119,64 @@ class Device:
         Starts the acquiring data process on the device. If data acquisition was already running, does nothing.
         """
         if not self.is_running:
-            handle_error(raw.NVXStart(self.device_handle))
             self._is_running = True
+            handle_error(raw.NVXStart(self.device_handle))
+            self._collector_thread.start()
 
     def stop(self):
         """Stop data acquisition
         Stops the device from acquiring data. If data acquisition was not running, does nothing.
         """
         if self.is_running:
-            handle_error(raw.NVXStop(self.device_handle))
             self._is_running = False
+            handle_error(raw.NVXStop(self.device_handle))
+            self._collector_thread.join()
 
-    # TODO: Add threads
-    # TODO: make pythonic
-    def get_data(self):
-        """Get acquisition data
-        Returns a data sample or None, if there are no more samples generated.
-        
+    @property
+    def delay_tolerance(self):
+        """Get device's delay tolerance.
+        Delay tolerance represents time in seconds, how much the device is allowed to wait before attempting to pull a
+        data sample. Default time is 0.01 seconds, and can be set to 0 (although that might lead to inconsistent pull
+        times).
+
+        Returns
+        -------
+        float
+            Delay tolerance, seconds
+        """
+        return self._delay_tolerance
+
+    @delay_tolerance.setter
+    def delay_tolerance(self, value):
+        """Set a new delay tolerance.
+        Delay tolerance represents time in seconds, how much the device is allowed to wait before attempting to pull a
+        data sample. Default time is 0.01 seconds. Delay tolerance is used in the collector thread, and thus cannot be
+        set when the device is running.
+
         Warnings
         --------
-        When the device is running, you should call this function until there are no more samples to get. 
+        Setting delay_tolerance to 0 might lead to inconsistent pull times.
+
+        Parameters
+        ----------
+        value : float
+            delay tolerance in seconds
+
+        Raises
+        ------
+        RuntimeError
+            if the device is currently running
+        """
+        if self.is_running:
+            raise RuntimeError("delay_tolerance cannot be set when the device is running")
+        self._delay_tolerance = value
+
+    def _get_data(self):
+        """Get acquisition data
+        Returns a data sample or None, if there are no more samples generated.
+        Not recommended for external use. Consider using pull method instead.
+
+        When the device is running, this class calls this function until there are no more samples to get.
         Otherwise, the internal buffer may overflow.
 
         Returns
@@ -138,6 +194,44 @@ class Device:
             return None
 
         return Sample(buffer, prop.count_eeg, prop.count_aux)
+
+    def _collect(self):
+        """Collect and process samples when running.
+        Not recommended for external use.
+        """
+        while self.is_running:
+            # Get new sample (returns None if no samples left)
+            sample = self._get_data()
+
+            if sample is not None and self._process(sample):
+                self._buffer.append(sample)
+            if sample is None and self.delay_tolerance > 0:
+                time.sleep(self.delay_tolerance)
+
+    def _process(self, sample):
+        """Process a sample.
+        Returns True if sample to be accepted.
+        Not recommended for external use.
+        """
+        ratio = self.rate / self.source_rate
+
+        cup0 = int(ratio * sample.counter())
+        cup1 = int(ratio * (sample.counter()+1))
+
+        # if a cup was filled, accept sample
+        return cup0 != cup1
+
+    def pull_chunk(self):
+        """Pull all samples from the device.
+
+        Returns
+        -------
+        collections.deque
+            requested samples. deque can be empty, if no samples were generated since last call.
+        """
+        # TODO: is this actually thread-safe?
+        result, self._buffer = self._buffer, []
+        return result
 
     @property
     def data_status(self):
@@ -529,6 +623,52 @@ class Device:
     def pll(self, value):
         # TODO: verify that NVXSetPll return type is error code (assuming it is)
         handle_error(raw.NVXSetPll(self.device_handle, ctypes.byref(value)))
+
+    @property
+    def source_rate(self):
+        """Get device's actual pull rate.
+        self.properties.rate is always the same as self.settings.rate, but presented as a float instead of enum.
+
+        Returns
+        -------
+        int
+            device's internal pull rate. Always one of (10000, 50000, 100000). Default is 10000
+        """
+        return int(self.properties.rate)
+
+    @property
+    def rate(self):
+        """Get device's pull rate.
+        This is the rate at which the device will output values, and is equal to source_rate by default.
+        Otherwise, it is usually lower, and some samples will be discarded to meet this rate.
+
+        Returns
+        -------
+        int
+            device's sample output rate in range [1, 100000]
+        """
+        return self._rate
+
+    @rate.setter
+    def rate(self, value):
+        if value <= 0:
+            raise ValueError("sampling frequency too low: must not be less than 1, got " + str(value))
+        elif value <= 10000:
+            new_source_rate = Rate.KHZ_10
+        elif value <= 50000:
+            new_source_rate = Rate.KHZ_50
+        elif value <= 100000:
+            new_source_rate = Rate.KHZ_100
+        else:
+            raise ValueError("sampling frequency too high: must not be more than 100000, got " + str(value))
+
+        # Set sampling frequency
+        self._rate = value
+
+        settings = self.settings
+        if settings.rate != new_source_rate:
+            settings.rate = new_source_rate
+            self.settings = settings
 
     def __del__(self):
         # Errors in the destructor are ignored

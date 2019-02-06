@@ -5,7 +5,7 @@ import time
 
 def inlet_test():
     nvx.set_emulation(True)
-    inlet = NVXInlet(index=0, fs=1000, delay_tolerance=0.01)
+    inlet = NVXInlet(index=0, fs=15000, delay_tolerance=0.01)
     inlet.start()
 
     start_time = time.time()
@@ -20,10 +20,11 @@ def inlet_test():
         # print(chunk)
 
         print("Pulled " + str(len(chunk)) + " chunks in " + str(time.time() - pull_time) + "s")
-
-        sample = chunk[0]
-        print("Fc3: "    + str(sample["Fc3"]))
-        print("Aux2.1: " + str(sample["Aux2.1"]))
+        if len(chunk) > 0:
+            sample = chunk[0]
+            print("Fc3: "    + str(sample["Fc3"]))
+            print("Aux2.1: " + str(sample["Aux2.1"]))
+            #print("Counter" + str(sample.counter()))
 
         '''for piece in chunk:
             print(piece)'''

@@ -10,6 +10,9 @@ from .channel_names import eeg_channel, aux_channel
 class Sample:
     """Sample represents a data slice, returned by Device.get_data"""
     def __init__(self, raw_data, count_eeg, count_aux):
+        # TODO: Add local counter
+        # TODO: Make more pythonic
+        # TODO: Add time pulled
         self.raw_data = raw_data
         self.count_eeg = count_eeg
         self.count_aux = count_aux
