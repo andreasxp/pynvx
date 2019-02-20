@@ -9,13 +9,13 @@ from .channel_names import eeg_channel, aux_channel
 # Sample holds one data sample from a Device
 class Sample:
     """Sample represents a data slice, returned by Device.get_data"""
-    def __init__(self, raw_data, count_eeg, count_aux):
+    def __init__(self, raw_data, eeg_count, aux_count):
         # TODO: Add local counter
         # TODO: Make more pythonic
         # TODO: Add time pulled
         self.raw_data = raw_data
-        self.count_eeg = count_eeg
-        self.count_aux = count_aux
+        self.eeg_count = eeg_count
+        self.aux_count = aux_count
 
     def eeg_data(self, index):
         """Get data from an eeg channel
@@ -29,10 +29,10 @@ class Sample:
         int
             requested data
         """
-        if index >= self.count_eeg:
+        if index >= self.eeg_count:
             raise ValueError(
                 "no channel with index " + str(index)
-                + " (only " + str(self.count_eeg) + " eeg channels present)")
+                + " (only " + str(self.eeg_count) + " eeg channels present)")
 
         result = ctypes.cast(self.raw_data.value + index*4, ctypes.POINTER(ctypes.c_int))[0]
         return result
@@ -49,12 +49,12 @@ class Sample:
         int
             requested data
         """
-        if index >= self.count_aux:
+        if index >= self.aux_count:
             raise ValueError(
                 "no aux channel with index " + str(index)
-                + " (only " + str(self.count_aux) + " aux channels present)")
+                + " (only " + str(self.aux_count) + " aux channels present)")
 
-        result = ctypes.cast(self.raw_data.value + self.count_eeg*4 + index*4, ctypes.POINTER(ctypes.c_int))[0]
+        result = ctypes.cast(self.raw_data.value + self.eeg_count*4 + index*4, ctypes.POINTER(ctypes.c_int))[0]
         return result
 
     def __getitem__(self, name):
@@ -89,7 +89,7 @@ class Sample:
         int
             Folded status: digital inputs (bits 0 - 7) + output (bits 8 - 15) state + 16 MSB reserved bits
         """
-        result = ctypes.cast(self.raw_data.value + self.count_eeg * 4 + self.count_aux * 4,
+        result = ctypes.cast(self.raw_data.value + self.eeg_count * 4 + self.aux_count * 4,
                              ctypes.POINTER(ctypes.c_uint))[0]
         return result
 
@@ -147,6 +147,6 @@ class Sample:
         int
             counter
         """
-        result = ctypes.cast(self.raw_data.value + self.count_eeg * 4 + self.count_aux * 4 + 4,
+        result = ctypes.cast(self.raw_data.value + self.eeg_count * 4 + self.aux_count * 4 + 4,
                              ctypes.POINTER(ctypes.c_uint))[0]
         return result

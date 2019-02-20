@@ -16,7 +16,7 @@ class EegStatesView:
         self.device = device
 
     def __len__(self):
-        return self.device.properties.count_eeg
+        return self.device.eeg_count
 
     def __getitem__(self, idx):
         """Get an eeg channel state using a channel index.
@@ -88,7 +88,7 @@ class AuxStatesView:
         self.device = device
 
     def __len__(self):
-        return self.device.properties.count_aux
+        return self.device.aux_count
 
     def __getitem__(self, idx):
         """Get an aux channel state using a channel index.
@@ -113,7 +113,7 @@ class AuxStatesView:
             raise IndexError("no channel with index " + str(idx) +
                              " (only " + str(size) + " aux channels present)")
 
-        return self.device._channel_states[self.device.properties.count_eeg + idx]
+        return self.device._channel_states[self.device.eeg_count + idx]
 
     def __setitem__(self, idx, value):
         """Set an aux channel state (on/off).
@@ -142,7 +142,7 @@ class AuxStatesView:
                              " (only " + str(size) + " aux channels present)")
 
         states = self.device._channel_states
-        states[self.device.properties.count_eeg + idx] = ctypes.c_bool(value)
+        states[self.device.eeg_count + idx] = ctypes.c_bool(value)
         self.device._channel_states = states
 
 

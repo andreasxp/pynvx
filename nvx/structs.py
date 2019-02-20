@@ -35,7 +35,7 @@ class Rate(CEnum):
 # ADC data filter, obsolete, not used
 class AdcFilter(CEnum):
     NATIVE = 0  # no ADC data filter
-    AVERAGING_2 = 1  # ADC data moving avaraging filter by 2 samples
+    AVERAGING_2 = 1  # ADC data moving averaging filter by 2 samples
 
 
 # ADC data decimation

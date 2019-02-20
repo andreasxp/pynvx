@@ -7,7 +7,7 @@ from threading import Thread
 import time
 
 from .structs import Version, Settings, Property, DataStatus, ErrorStatus, Gain, PowerSave, \
-    ImpedanceSetup, ImpedanceMode, ImpedanceSettings, Voltages, FrequencyBandwidth, Pll, Rate
+    ImpedanceSetup, ImpedanceMode, ScanFreq, ImpedanceSettings, Voltages, FrequencyBandwidth, Pll, Rate
 from .base import raw, get_count
 from .utility import handle_error
 from .sample import Sample
@@ -51,7 +51,7 @@ class Device:
         self._is_running = False  # Not for external use. Use start(), stop(), or is_running property instead.
         self._active_shield_gain = 100
 
-        # Data aquisition rate (hz). Not always the same as source_rate property.
+        # Data acquisition rate (hz). Not always the same as source_rate property.
         # Not for external use. Use rate property instead.
         self._rate = 10000
 
@@ -78,22 +78,31 @@ class Device:
         handle_error(raw.NVXGetVersion(self.device_handle, ctypes.byref(ver)))
         return ver
 
+    # Settings and their properties ====================================================================================
     @property
-    def settings(self):
+    def _settings(self):
         """Get device acquisition settings
+        This property is for internal use. Struct Settings has 4 members, (mode, rate, adc_filter, decimation), of which
+        mode, rate and decimation can be accessed via their own properties (acquisition_mode, rate/source_rate and
+        decimation), and adc_filter is deprecated in the DLL.
 
         Returns
         -------
         structs.Settings
             device settings. See structs.py
         """
-        settings = Settings()
-        handle_error(raw.NVXGetSettings(self.device_handle, ctypes.byref(settings)))
-        return settings
+        result = Settings()
+        handle_error(raw.NVXGetSettings(self.device_handle, ctypes.byref(result)))
+        return result
 
-    @settings.setter
-    def settings(self, value):
+    @_settings.setter
+    def _settings(self, value):
         """Set device acquisition settings
+        This property is for internal use. Struct Settings has 4 members, (mode, rate, adc_filter, decimation), of which
+        mode, rate and decimation can be accessed via their own properties (acquisition_mode, rate/source_rate and
+        decimation), and adc_filter is deprecated in the DLL.
+
+        Note: rate property uses structs.Property.rate as well as structs.Settings.rate.
         
         Parameters
         ----------
@@ -102,8 +111,29 @@ class Device:
         handle_error(raw.NVXSetSettings(self.device_handle, ctypes.byref(value)))
 
     @property
-    def properties(self):
-        """Get device acquisition properties
+    def acquisition_mode(self):
+        return self._settings.mode
+
+    @acquisition_mode.setter
+    def acquisition_mode(self, value):
+        s = self._settings
+        s.mode = value
+        self._settings = s
+
+    @property
+    def decimation(self):
+        return self._settings.mode
+
+    @decimation.setter
+    def decimation(self, value):
+        s = self._settings
+        s.decimation = value
+        self._settings = s
+
+    # Properties and their properties ==================================================================================
+    @property
+    def _properties(self):
+        """Get device acquisition _properties
 
         Returns
         -------
@@ -113,6 +143,115 @@ class Device:
         prop = Property()
         handle_error(raw.NVXGetProperty(self.device_handle, ctypes.byref(prop)))
         return prop
+
+    @property
+    def eeg_count(self):
+        """Get the count of EEG channels."""
+        return self._properties.count_eeg
+
+    @property
+    def aux_count(self):
+        """Get the count of AUX channels."""
+        return self._properties.count_aux
+
+    @property
+    def input_triggers_count(self):
+        """Get the count of input triggers."""
+        return self._properties.triggers_in
+
+    @property
+    def output_triggers_count(self):
+        """Get the count of output triggers."""
+        return self._properties.triggers_out
+
+    @property
+    def source_rate(self):
+        """Get device's actual pull rate.
+        self._properties.rate is always the same as self._settings.rate, but presented as a float instead of enum.
+
+        Returns
+        -------
+        int
+            device's internal pull rate. Always one of (10000, 50000, 100000). Default is 10000
+        """
+        return int(self._properties.rate)
+
+    @property
+    def eeg_resolution(self):
+        """Get the EEG amplitude scale coefficients, in V/bit
+
+        Returns
+        -------
+        float
+        """
+        return self._properties.resolution_eeg
+
+    @property
+    def aux_resolution(self):
+        """Get the AUX amplitude scale coefficients, in V/bit
+
+        Returns
+        -------
+        float
+        """
+        return self._properties.resolution_aux
+
+    @property
+    def eeg_range(self):
+        """Get the EEG input range peak-peak, in V
+
+        Returns
+        -------
+        float
+        """
+        return self._properties.range_eeg
+
+    @property
+    def aux_range(self):
+        """Get the AUX input range peak-peak, in V
+
+        Returns
+        -------
+        float
+        """
+        return self._properties.range_aux
+
+    # Adjusted rate property ===========================================================================================
+    @property
+    def rate(self):
+        """Get device's pull rate.
+        This is the rate at which the device will output values, and is equal to source_rate by default.
+        Otherwise, it is usually lower, and some samples will be discarded to meet this rate.
+
+        Returns
+        -------
+        int
+            device's sample output rate in range [1, 100000]
+        """
+        return self._rate
+
+    @rate.setter
+    def rate(self, value):
+        if value <= 0:
+            raise ValueError("sampling frequency too low: must not be less than 1, got " + str(value))
+        elif value <= 10000:
+            new_source_rate = Rate.KHZ_10
+        elif value <= 50000:
+            new_source_rate = Rate.KHZ_50
+        elif value <= 100000:
+            new_source_rate = Rate.KHZ_100
+        else:
+            raise ValueError("sampling frequency too high: must not be more than 100000, got " + str(value))
+
+        # Set sampling frequency
+        self._rate = value
+
+        s = self._settings
+        if s.rate != new_source_rate:
+            s.rate = new_source_rate
+            self._settings = s
+
+    # ==================================================================================================================
 
     def start(self):
         """Start data acquisition
@@ -129,15 +268,15 @@ class Device:
         """
         if self.is_running:
             self._is_running = False
-            handle_error(raw.NVXStop(self.device_handle))
             self._collector_thread.join()
+            handle_error(raw.NVXStop(self.device_handle))
 
     @property
     def delay_tolerance(self):
         """Get device's delay tolerance.
         Delay tolerance represents time in seconds, how much the device is allowed to wait before attempting to pull a
         data sample. Default time is 0.01 seconds, and can be set to 0 (although that might lead to inconsistent pull
-        times).
+        times due to thread locks fighting).
 
         Returns
         -------
@@ -184,8 +323,7 @@ class Device:
         sample.Sample or None
             possible data sample. See sample.py
         """
-        prop = self.properties
-        buffer_size_bytes = prop.count_eeg * 4 + prop.count_aux * 4 + 8
+        buffer_size_bytes = self.eeg_count * 4 + self.aux_count * 4 + 8
         buffer = ctypes.cast(ctypes.create_string_buffer(buffer_size_bytes), ctypes.c_void_p)
 
         ret = raw.NVXGetData(self.device_handle, buffer, buffer_size_bytes)
@@ -193,7 +331,7 @@ class Device:
         if ret == 0:  # no more data to return
             return None
 
-        return Sample(buffer, prop.count_eeg, prop.count_aux)
+        return Sample(buffer, self.eeg_count, self.aux_count)
 
     def _collect(self):
         """Collect and process samples when running.
@@ -210,7 +348,7 @@ class Device:
 
     def _process(self, sample):
         """Process a sample.
-        Returns True if sample to be accepted.
+        Returns True if a sample is to be accepted.
         Not recommended for external use.
         """
         ratio = self.rate / self.source_rate
@@ -226,15 +364,15 @@ class Device:
 
         Returns
         -------
-        collections.deque
-            requested samples. deque can be empty, if no samples were generated since last call.
+        list
+            requested samples. list can be empty, if no samples were generated since last call.
         """
         # TODO: is this actually thread-safe?
         result, self._buffer = self._buffer, []
         return result
 
     @property
-    def data_status(self):
+    def _data_status(self):
         """Get device acquisition data status
 
         Returns
@@ -260,6 +398,20 @@ class Device:
         return status
 
     @property
+    def source_sample_count(self):
+        """Returns how many samples were generated on the hardware device.
+        Since Device implements rate downsampling, this number is equal or larger than the amount of samples passed to
+        the device user.
+        This value is the same as field 'samples' in data_status and error status, and provided here for convenience.
+
+        Returns
+        -------
+        int
+            samples count
+        """
+        return self._data_status.samples
+
+    @property
     def trigger_states(self):
         """Provides a view into device's trigger states
 
@@ -273,25 +425,43 @@ class Device:
     @property
     def aux_gain(self):
         """Get aux gain
+        While internally Gain is used as an enum, this function returns an int for convenience.
 
         Returns
         -------
-        structs.Gain
-            gain value. See structs.py
+        int
+            gain value (1 or 5). See also structs.Gain
         """
         gain = Gain()
         handle_error(raw.NVXGetAuxGain(self.device_handle, ctypes.byref(gain)))
-        return gain
+
+        if gain == Gain.GAIN_1:
+            return 1
+        return 5
 
     @aux_gain.setter
-    def aux_gain(self, gain):
+    def aux_gain(self, value):
         """Set aux gain
+        While internally Gain is used as an enum, this function accepts an int for convenience. That means that the only
+        acceptable values for gain are 1 and 5.
+
+        Raises
+        ------
+        ValueError
+            if passed gain value is not 1 or 5.
 
         Parameters
         ----------
-        gain : structs.Gain
+        value : int
             gain value. See structs.py
         """
+        gain = Gain()
+        if value == 1:
+            gain = Gain.GAIN_1
+        elif value == 5:
+            gain = Gain.GAIN_5
+        else:
+            raise ValueError("expected a gain value of either 1 or 5, got " + str(value))
         handle_error(raw.NVXSetAuxGain(self.device_handle, gain))
 
     @property
@@ -300,22 +470,28 @@ class Device:
 
         Returns
         -------
-        structs.PowerSave
-            power save value (0 or 1, as enum). See structs.py
+        bool
+            True if power save mode is enabled, False otherwise.
         """
         ps = PowerSave()
         handle_error(raw.NVXGetPowerSave(self.device_handle, ctypes.byref(ps)))
-        return ps
+        if ps == PowerSave.DISABLE:
+            return False
+        return True
 
     @power_save.setter
-    def power_save(self, ps):
+    def power_save(self, value):
         """Set power save mode
 
         Parameters
         ----------
-        ps : structs.PowerSave
-            power save value (0 or 1, as enum). See structs.py
+        value : bool
+            True to enable power save, False to disable.
         """
+        ps = PowerSave.DISABLE
+        if value:
+            ps = PowerSave.ENABLE
+
         handle_error(raw.NVXSetPowerSave(self.device_handle, PowerSave(ps)))
 
     @property
@@ -336,14 +512,13 @@ class Device:
         impedance.Impedance
             channels impedance. See impedance.py
         """
-        prop = self.properties
-        buffer_size = prop.count_eeg + 1
+        buffer_size = self.eeg_count + 1
         buffer_size_bytes = buffer_size * 4
         buffer = (ctypes.c_uint * buffer_size)()
 
         handle_error(raw.NVXImpedanceGetData(self.device_handle, buffer, buffer_size_bytes))
 
-        return Impedance(buffer, prop.count_eeg)
+        return Impedance(buffer, self.eeg_count)
 
     @property
     def impedance_setup(self):
@@ -419,8 +594,7 @@ class Device:
         - After a successful call to this function the device will execute this command:
         ~ 50 ms per 32 electrodes states changes from previous state
         """
-        prop = self.properties
-        buffer_size = prop.count_eeg + 1
+        buffer_size = self.eeg_count + 1
         buffer_size_bytes = buffer_size * 4
         buffer = (ctypes.c_uint * buffer_size)()
 
@@ -436,28 +610,48 @@ class Device:
         handle_error(raw.NVXSetElectrodes(self.device_handle, None, 0))
 
     @property
-    def impedance_settings(self):
-        """Get settings for impedance mode
+    def impedance_scan_frequency(self):
+        """Get the impedance scanning frequency, in Hz
+        While internally frequency is used as an enum (structs.ScanFreq) packaged in
+        a struct (structs.ImpedanceSettings), this function returns an int for convenience.
 
         Returns
         -------
-        structs.ImpedanceSettings
-            impedance settings. See structs.py
+        int
+            impedance scan frequency value (30 or 80 Hz). See also structs.ScanFreq
         """
-        settings = ImpedanceSettings()
-        handle_error(raw.NVXImpedanceGetSettings(self.device_handle, ctypes.byref(settings)))
-        return settings
+        imp_settings = ImpedanceSettings()
+        handle_error(raw.NVXImpedanceGetSettings(self.device_handle, ctypes.byref(imp_settings)))
+        scan_freq = imp_settings.scan_freq
 
-    @impedance_settings.setter
-    def impedance_settings(self, settings):
-        """Set settings for impedance mode
+        if scan_freq == ScanFreq.HZ_30:
+            return 30
+        return 80
+
+    @impedance_scan_frequency.setter
+    def impedance_scan_frequency(self, value):
+        """Set the impedance scanning frequency
+        While internally frequency is used as an enum (structs.ScanFreq) packaged in
+        a struct (structs.ImpedanceSettings), this function accepts an int for convenience.
+
+        Raises
+        ------
+        ValueError
+            if passed gain value is not 30 or 80.
 
         Parameters
         ----------
-        settings : structs.ImpedanceSettings
-            impedance settings. See structs.py
+        value : int
+            impedance scan frequency value value. See also structs.ScanFreq
         """
-        handle_error(raw.NVXImpedanceSetSettings(self.device_handle, ctypes.byref(settings)))
+        imp_settings = ImpedanceSettings()
+        if value == 30:
+            imp_settings.scan_freq = ScanFreq.HZ_30
+        elif value == 80:
+            imp_settings.scan_freq = ScanFreq.HZ_80
+        else:
+            raise ValueError("expected a frequency value of either 30 or 80, got " + str(value))
+        handle_error(raw.NVXImpedanceSetSettings(self.device_handle, ctypes.byref(imp_settings)))
 
     @property
     def voltages(self):
@@ -512,9 +706,8 @@ class Device:
         list of float
             polarisation of electrodes
         """
-        # TODO: ask how many electrodes there are (assuming count_eeg + GND)
-        prop = self.properties
-        buffer_size = prop.count_eeg + 1
+        # TODO: ask how many electrodes there are (assuming self.eeg_count + GND)
+        buffer_size = self.eeg_count + 1
         buffer_size_bytes = buffer_size * ctypes.sizeof(ctypes.c_double)
         buffer = (ctypes.c_double * buffer_size)()
 
@@ -549,9 +742,8 @@ class Device:
         list of structs.FrequencyBandwidth
             frequency bandwidths. See structs.py
         """
-        # TODO: ask how large the array should be (assuming count_eeg + GND)
-        prop = self.properties
-        buffer_size = prop.count_eeg + 1
+        # TODO: ask how large the array should be (assuming self.eeg_count + GND)
+        buffer_size = self.eeg_count + 1
         buffer_size_bytes = buffer_size * ctypes.sizeof(FrequencyBandwidth)
         buffer = (FrequencyBandwidth * buffer_size)()
 
@@ -571,8 +763,7 @@ class Device:
         list of bool
             channel states
         """
-        prop = self.properties
-        buffer_size = prop.count_eeg + prop.count_aux
+        buffer_size = self.eeg_count + self.aux_count
         buffer_size_bytes = buffer_size * ctypes.sizeof(ctypes.c_bool)
         buffer = (ctypes.c_bool * buffer_size)()
 
@@ -594,8 +785,7 @@ class Device:
         values : a ctypes array of ctypes.c_bool of size count_eeg+count_aux
             values to set
         """
-        prop = self.properties
-        buffer_size = prop.count_eeg + prop.count_aux
+        buffer_size = self.eeg_count + self.aux_count
         buffer_size_bytes = buffer_size * ctypes.sizeof(ctypes.c_bool)
 
         handle_error(raw.NVXSetChannelsEnabled(self.device_handle, values, buffer_size_bytes))
@@ -623,52 +813,6 @@ class Device:
     def pll(self, value):
         # TODO: verify that NVXSetPll return type is error code (assuming it is)
         handle_error(raw.NVXSetPll(self.device_handle, ctypes.byref(value)))
-
-    @property
-    def source_rate(self):
-        """Get device's actual pull rate.
-        self.properties.rate is always the same as self.settings.rate, but presented as a float instead of enum.
-
-        Returns
-        -------
-        int
-            device's internal pull rate. Always one of (10000, 50000, 100000). Default is 10000
-        """
-        return int(self.properties.rate)
-
-    @property
-    def rate(self):
-        """Get device's pull rate.
-        This is the rate at which the device will output values, and is equal to source_rate by default.
-        Otherwise, it is usually lower, and some samples will be discarded to meet this rate.
-
-        Returns
-        -------
-        int
-            device's sample output rate in range [1, 100000]
-        """
-        return self._rate
-
-    @rate.setter
-    def rate(self, value):
-        if value <= 0:
-            raise ValueError("sampling frequency too low: must not be less than 1, got " + str(value))
-        elif value <= 10000:
-            new_source_rate = Rate.KHZ_10
-        elif value <= 50000:
-            new_source_rate = Rate.KHZ_50
-        elif value <= 100000:
-            new_source_rate = Rate.KHZ_100
-        else:
-            raise ValueError("sampling frequency too high: must not be more than 100000, got " + str(value))
-
-        # Set sampling frequency
-        self._rate = value
-
-        settings = self.settings
-        if settings.rate != new_source_rate:
-            settings.rate = new_source_rate
-            self.settings = settings
 
     def __del__(self):
         # Errors in the destructor are ignored
