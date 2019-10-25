@@ -258,8 +258,8 @@ class Device:
         Starts the acquiring data process on the device. If data acquisition was already running, does nothing.
         """
         if not self.is_running:
-            self._is_running = True
             handle_error(raw.NVXStart(self.device_handle))
+            self._is_running = True
             self._collector_thread.start()
 
     def stop(self):
