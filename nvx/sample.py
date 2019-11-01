@@ -3,6 +3,7 @@ NVX Data sample
 
 """
 import ctypes
+import numpy as np
 from .channel_names import eeg_channel, aux_channel
 
 
@@ -10,12 +11,23 @@ from .channel_names import eeg_channel, aux_channel
 class Sample:
     """Sample represents a data slice, returned by Device.get_data"""
     def __init__(self, raw_data, eeg_count, aux_count):
+        size = eeg_count + aux_count
+        ctypes_array = (ctypes.c_int32 * size).from_address(raw_data.value)
+
         # TODO: Add local counter
-        # TODO: Make more pythonic
         # TODO: Add time pulled
-        self.raw_data = raw_data
+        # Numpy array representation of the EEG and AUX data
+        self.data = np.ctypeslib.as_array(ctypes_array)
         self.eeg_count = eeg_count
         self.aux_count = aux_count
+
+        # Status bitfield: digital inputs (bits 0 - 7) + output (bits 8 - 15) state + 16 MSB reserved bits
+        self._status = ctypes.cast(raw_data.value + self.eeg_count * 4 + self.aux_count * 4,
+                                   ctypes.POINTER(ctypes.c_uint))[0]
+
+        # Data sequencing cyclic counter for checking for data loss.
+        self.counter = ctypes.cast(raw_data.value + self.eeg_count * 4 + self.aux_count * 4 + 4,
+                                   ctypes.POINTER(ctypes.c_uint))[0]
 
     def eeg_data(self, index):
         """Get data from an eeg channel
@@ -34,8 +46,7 @@ class Sample:
                 "no channel with index " + str(index)
                 + " (only " + str(self.eeg_count) + " eeg channels present)")
 
-        result = ctypes.cast(self.raw_data.value + index*4, ctypes.POINTER(ctypes.c_int))[0]
-        return result
+        return self.data[index]
 
     def aux_data(self, index):
         """Get data from an aux channel
@@ -54,44 +65,30 @@ class Sample:
                 "no aux channel with index " + str(index)
                 + " (only " + str(self.aux_count) + " aux channels present)")
 
-        result = ctypes.cast(self.raw_data.value + self.eeg_count*4 + index*4, ctypes.POINTER(ctypes.c_int))[0]
-        return result
+        return self.data[self.eeg_count + index]
 
-    def __getitem__(self, name):
+    def __getitem__(self, channel_name):
         """Get data from an eeg or aux channel by name
 
         Parameters
         ----------
-        name : str
+        channel_name : str
             Name of an EEG or AUX channel that is present in channel_names.py
 
         Raises
         ------
         KeyError
-            if name is not a valid eeg/aux channel name
+            if channel_name is not a valid eeg/aux channel name
 
         Returns
         -------
         int
             requested data
         """
-        if name in eeg_channel:
-            return self.eeg_data(eeg_channel[name])
+        if channel_name in eeg_channel:
+            return self.eeg_data(eeg_channel[channel_name])
         else:
-            return self.aux_data(aux_channel[name])
-
-    def _status(self):
-        """Get the digital status
-        This function is not recommended for external use. Consider using input_status or output_status instead.
-
-        Returns
-        -------
-        int
-            Folded status: digital inputs (bits 0 - 7) + output (bits 8 - 15) state + 16 MSB reserved bits
-        """
-        result = ctypes.cast(self.raw_data.value + self.eeg_count * 4 + self.aux_count * 4,
-                             ctypes.POINTER(ctypes.c_uint))[0]
-        return result
+            return self.aux_data(aux_channel[channel_name])
 
     def input_status(self, index):
         """Get the digital status of an input channel
@@ -114,7 +111,7 @@ class Sample:
             raise ValueError("invalid index " + str(index) + ": there are 8 input channels")
 
         # TODO: verify bit ordering (current: lowest first)
-        return bool(self._status() & (1 << index))
+        return bool(self._status & (1 << index))
 
     def output_status(self, index):
         """Get the digital status of an output channel
@@ -137,16 +134,4 @@ class Sample:
             raise ValueError("invalid index " + str(index) + ": there are 8 output channels")
 
         # TODO: verify bit ordering (current: lowest first)
-        return self._status() & (1 << 8 << index)
-
-    def counter(self):
-        """Get a data sequencing cyclic counter for checking the data loss.
-
-        Returns
-        -------
-        int
-            counter
-        """
-        result = ctypes.cast(self.raw_data.value + self.eeg_count * 4 + self.aux_count * 4 + 4,
-                             ctypes.POINTER(ctypes.c_uint))[0]
-        return result
+        return self._status & (1 << 8 << index)

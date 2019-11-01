@@ -5,12 +5,14 @@ NVX hardware device
 import ctypes
 from threading import Thread
 import time
+import math
 
 from .structs import Version, Settings, Property, DataStatus, ErrorStatus, Gain, PowerSave, \
     ImpedanceSetup, ImpedanceMode, ScanFreq, ImpedanceSettings, Voltages, FrequencyBandwidth, Pll, Rate
 from .base import raw, get_count
 from .utility import handle_error
 from .sample import Sample
+from .ring_buffer import RingBuffer
 from .impedance import Impedance
 from .trigger_states_view import TriggerStatesView
 from .channel_states_view import ChannelStatesView
@@ -18,7 +20,7 @@ from .channel_states_view import ChannelStatesView
 
 class Device:
     """Device represents a physical device connected to the system"""
-    def __init__(self, index):
+    def __init__(self, index: int, buffer_time: float = 1.0):
         """Constructor
         Opens a hardware device for work.
         Device is closed when the object is deleted
@@ -27,6 +29,8 @@ class Device:
         ----------
         index : int
             device index in the system. Must be in range [0, nvx.get_count())
+        buffer_time
+            amount of time for which the samples will be kept in seconds
         """
         # Opening device -----------------------------------------------------------------------------------------------
         if 0 <= index < get_count():
@@ -42,7 +46,8 @@ class Device:
         self.voltages
 
         # Data collecting ----------------------------------------------------------------------------------------------
-        self._buffer = []
+        self._buffer_time = buffer_time
+        self._buffer = None  # Created at start()
         self._collector_thread = Thread(target=self._collect)
         self._delay_tolerance = 0.01
 
@@ -253,11 +258,18 @@ class Device:
 
     # ==================================================================================================================
 
+    def _new_buffer(self):
+        """Create a new internal buffer
+        Not recommended for external use.
+        """
+        return RingBuffer(math.ceil(self.rate * self._buffer_time), dtype=object)
+
     def start(self):
         """Start data acquisition
         Starts the acquiring data process on the device. If data acquisition was already running, does nothing.
         """
         if not self.is_running:
+            self._buffer = self._new_buffer()
             handle_error(raw.NVXStart(self.device_handle))
             self._is_running = True
             self._collector_thread.start()
@@ -353,8 +365,8 @@ class Device:
         """
         ratio = self.rate / self.source_rate
 
-        cup0 = int(ratio * sample.counter())
-        cup1 = int(ratio * (sample.counter()+1))
+        cup0 = int(ratio * sample.counter)
+        cup1 = int(ratio * (sample.counter+1))
 
         # if a cup was filled, accept sample
         return cup0 != cup1
@@ -368,7 +380,7 @@ class Device:
             requested samples. list can be empty, if no samples were generated since last call.
         """
         # TODO: is this actually thread-safe?
-        result, self._buffer = self._buffer, []
+        result, self._buffer = self._buffer, self._new_buffer()
         return result
 
     @property
