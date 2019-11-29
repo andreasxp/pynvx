@@ -11,6 +11,7 @@ from .structs import Version
 raw = None
 if is_64bit():
     raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/Dll/x64/Release/NVX136.dll")
+    raw.NVXOpen.restype = ctypes.c_void_p
 else:
     raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/Dll/x86/Release/NVX136.dll")
 
