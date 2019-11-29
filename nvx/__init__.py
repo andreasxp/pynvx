@@ -9,3 +9,4 @@ from .structs import Version, Settings, Property, DataStatus, ErrorStatus, Gain,
 from .device import Device
 from .sample import Sample
 from .impedance import Impedance
+from .ring_buffer import RingBuffer

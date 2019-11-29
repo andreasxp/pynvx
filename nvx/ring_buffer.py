@@ -11,7 +11,7 @@ class RingBuffer:
     def __init__(self, capacity: int, dtype=np.int32):
         """Constructor
         Ring buffer is not an array. Not all elements observable through self.data are valid. Instead, ring buffer
-        reserves its maximum capacity in the data member. After construction, the buffer will be empty - you will need
+        reserves its maximum capacity in the 'data' member. After construction, the buffer will be empty - you will need
         to append() new values into it.
 
         Parameters
@@ -32,23 +32,22 @@ class RingBuffer:
 
         Warnings
         --------
-        Since numpy arrays must store contiguous data only, this function will perform a copy of the data if
-        self.is_contiguous() returns False. If you would like the function to fail if the data is bifurcated, use
-        as_array_view instead.
+        Since numpy arrays must store contiguous data only, this function will always perform a copy of the data. If you
+        are sure your data can be represented as a view (self.is_contiguous() returns True) use as_array_view instead.
 
         Returns
         -------
         numpy.ndarray
-            A view or copy of the data in a flat numpy array. Array's size will not be larger than ringbuf's size.
+            A copy of the data in a flat numpy array. Array's size will not be larger than ringbuf's size.
         """
         if self.is_contiguous():
-            # Return a view
-            return self.data[self._begin:(self._begin + self.size())]
+            # Return a copy via copy
+            return np.copy(self.data[self._begin:(self._begin + self.size)])
         else:
             # Return a copy via numpy.concatenate
             return np.concatenate((
-                self.data[self._begin:self.capacity()],
-                self.data[0:((self._begin + self.size()) % self.capacity())]
+                self.data[self._begin:self.capacity],
+                self.data[0:((self._begin + self.size) % self.capacity)]
             ))
 
     def as_array_view(self):
@@ -71,7 +70,7 @@ class RingBuffer:
         """
         if self.is_contiguous():
             # Return a view
-            return self.data[self._begin:(self._begin + self.size())]
+            return self.data[self._begin:(self._begin + self.size)]
         else:
             raise BufferError("ringbuf array is bifurcated")
 
@@ -82,20 +81,22 @@ class RingBuffer:
         bool
             True if all data is in a contiguous chunk of memory, False otherwise.
         """
-        return self._begin + self.size() <= self.capacity()
+        return self._begin + self.size <= self.capacity
 
     def __len__(self):
         """Return the amount of elements the ringbuffer holds.
         Equivalent to calling buffer.size().
         """
         return self._size
-
+    
+    @property
     def size(self):
         """Return the amount of elements the ringbuffer holds.
         Equivalent to calling len(buffer).
         """
         return self._size
-
+    
+    @property
     def capacity(self):
         """Return current maximum capacity of the ring buffer."""
         return self.data.shape[0]
@@ -118,12 +119,12 @@ class RingBuffer:
         value
             retrieved value
         """
-        if 0 <= index < self.size():
-            return self.data[(self._begin + index) % self.capacity()]
-        elif -self.size() <= index < 0:
-            return self.data[(self._begin + self.size() + index) % self.capacity()]
+        if 0 <= index < self.size:
+            return self.data[(self._begin + index) % self.capacity]
+        elif -self.size <= index < 0:
+            return self.data[(self._begin + self.size + index) % self.capacity]
         else:
-            raise IndexError("index " + str(index) + " is out of bounds for size " + str(self.size()))
+            raise IndexError("index " + str(index) + " is out of bounds for size " + str(self.size))
 
     def __setitem__(self, index: int, value):
         """Retrieve an element from the buffer.
@@ -140,17 +141,17 @@ class RingBuffer:
         IndexError
             if the index is out of bounds
         """
-        if 0 <= index < self.size():
-            self.data[(self._begin + index) % self.capacity()] = value
-        elif -self.size() <= index < 0:
-            self.data[(self._begin + self.size() + index) % self.capacity()] = value
+        if 0 <= index < self.size:
+            self.data[(self._begin + index) % self.capacity] = value
+        elif -self.size <= index < 0:
+            self.data[(self._begin + self.size + index) % self.capacity] = value
         else:
-            raise IndexError("index " + str(index) + " is out of bounds for size " + str(self.size()))
+            raise IndexError("index " + str(index) + " is out of bounds for size " + str(self.size))
 
     def append(self, value):
-        self.data[(self._begin + self.size()) % self.capacity()] = value
-        if self.size() == self.capacity():
-            self._begin = (self._begin + 1) % self.capacity()
+        self.data[(self._begin + self.size) % self.capacity] = value
+        if self.size == self.capacity:
+            self._begin = (self._begin + 1) % self.capacity
         else:
             self._size += 1
 
@@ -168,6 +169,10 @@ class RingBuffer:
             self.data.fill(0)
         self._begin = 0
         self._size = 0
+
+    @property
+    def dtype(self):
+        return self.data.dtype
 
     def __repr__(self):
         return repr(self.data)
