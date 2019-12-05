@@ -60,6 +60,12 @@ class Device:
         # Not for external use. Use rate property instead.
         self._rate = 10000
 
+        # Set source rate to the maximum. Seems that this results in the least delay. Unneeded samples are discarded
+        # during collection.
+        s = self._settings
+        s.rate = Rate.KHZ_100
+        self._settings = s
+
     @property
     def index(self):
         """Get device index"""
@@ -239,22 +245,11 @@ class Device:
     def rate(self, value):
         if value <= 0:
             raise ValueError("sampling frequency too low: must not be less than 1, got " + str(value))
-        elif value <= 10000:
-            new_source_rate = Rate.KHZ_10
-        elif value <= 50000:
-            new_source_rate = Rate.KHZ_50
-        elif value <= 100000:
-            new_source_rate = Rate.KHZ_100
-        else:
+        elif value > 100000:
             raise ValueError("sampling frequency too high: must not be more than 100000, got " + str(value))
 
         # Set sampling frequency
         self._rate = value
-
-        s = self._settings
-        if s.rate != new_source_rate:
-            s.rate = new_source_rate
-            self._settings = s
 
     # ==================================================================================================================
 
