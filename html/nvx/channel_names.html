@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.7.2" />
+<title>nvx.channel_names API documentation</title>
+<meta name="description" content="Dictionaries that map NVX channel names to their indexes in samples." />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>nvx.channel_names</code></h1>
+</header>
+<section id="section-intro">
+<p>Dictionaries that map NVX channel names to their indexes in samples.</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;Dictionaries that map NVX channel names to their indexes in samples.
+&#34;&#34;&#34;
+
+eeg_channel = {
+    &#34;T7&#34;:       0,
+    &#34;Tp9&#34;:      1,
+    &#34;P7&#34;:       2,
+    &#34;Cp5&#34;:      3,
+    &#34;Ft9&#34;:      4,
+    &#34;F7&#34;:       5,
+    &#34;Fc5&#34;:      6,
+    &#34;F3&#34;:       7,
+    &#34;P3&#34;:       8,
+    &#34;C3&#34;:       9,
+    &#34;Cp1&#34;:     10,
+    &#34;O1&#34;:      11,
+    &#34;Fp1&#34;:     12,
+    &#34;Fc1&#34;:     13,
+    &#34;Fz&#34;:      14,
+    &#34;Fp2&#34;:     15,
+    &#34;Cz&#34;:      16,
+    &#34;Fc2&#34;:     17,
+    &#34;Cp2&#34;:     18,
+    &#34;Pz&#34;:      19,
+    &#34;O2&#34;:      20,
+    &#34;Oz&#34;:      21,
+    &#34;C4&#34;:      22,
+    &#34;P4&#34;:      23,
+    &#34;F4&#34;:      24,
+    &#34;Fc6&#34;:     25,
+    &#34;F8&#34;:      26,
+    &#34;Ft10&#34;:    27,
+    &#34;Cp6&#34;:     28,
+    &#34;P8&#34;:      29,
+    &#34;T8&#34;:      30,
+    &#34;Tp10&#34;:    31,
+    &#34;Ft7&#34;:     32,
+    &#34;Tp7&#34;:     33,
+    &#34;Af7&#34;:     34,
+    &#34;F5&#34;:      35,
+    &#34;C5&#34;:      36,
+    &#34;Fc3&#34;:     37,
+    &#34;Cp3&#34;:     38,
+    &#34;P5&#34;:      39,
+    &#34;Po3&#34;:     40,
+    &#34;Po7&#34;:     41,
+    &#34;C1&#34;:      42,
+    &#34;P1&#34;:      43,
+    &#34;Af3&#34;:     44,
+    &#34;F1&#34;:      45,
+    &#34;Af4&#34;:     46,
+    &#34;Fpz&#34;:     47,
+    &#34;Fcz&#34;:     48,
+    &#34;F2&#34;:      49,
+    &#34;Cpz&#34;:     50,
+    &#34;C2&#34;:      51,
+    &#34;Poz&#34;:     52,
+    &#34;P2&#34;:      53,
+    &#34;Po8&#34;:     54,
+    &#34;Po4&#34;:     55,
+    &#34;P6&#34;:      56,
+    &#34;Cp4&#34;:     57,
+    &#34;Fc4&#34;:     58,
+    &#34;C6&#34;:      59,
+    &#34;F6&#34;:      60,
+    &#34;Af8&#34;:     61,
+    &#34;Ft8&#34;:     62,
+    &#34;Tp8&#34;:     63,
+    &#34;Ftt7h&#34;:   64,
+    &#34;F9&#34;:      65,
+    &#34;Tpp7h&#34;:   66,
+    &#34;Ffc5h&#34;:   67,
+    &#34;Ccp5h&#34;:   68,
+    &#34;Fcc3h&#34;:   69,
+    &#34;Cpp3h&#34;:   70,
+    &#34;P9&#34;:      71,
+    &#34;Ppo9h&#34;:   72,
+    &#34;Po9&#34;:     73,
+    &#34;Oi1h&#34;:    74,
+    &#34;I1&#34;:      75,
+    &#34;Ccp1h&#34;:   76,
+    &#34;Ppo1h&#34;:   77,
+    &#34;Aff1h&#34;:   78,
+    &#34;Ffc1h&#34;:   79,
+    &#34;Ffc2h&#34;:   80,
+    &#34;Aff2h&#34;:   81,
+    &#34;Ppo2h&#34;:   82,
+    &#34;Ccp2h&#34;:   83,
+    &#34;I2&#34;:      84,
+    &#34;Oi2h&#34;:    85,
+    &#34;Po10&#34;:    86,
+    &#34;Ppo10h&#34;:  87,
+    &#34;P10&#34;:     88,
+    &#34;Cpp4h&#34;:   89,
+    &#34;Fcc4h&#34;:   90,
+    &#34;Ccp6h&#34;:   91,
+    &#34;Ffc6h&#34;:   92,
+    &#34;Tpp8h&#34;:   93,
+    &#34;Ftt8h&#34;:   94,
+    &#34;F10&#34;:     95,
+    &#34;Ttp7h&#34;:   96,
+    &#34;Tpp9h&#34;:   97,
+    &#34;Ftt9h&#34;:   98,
+    &#34;Fft9h&#34;:   99,
+    &#34;Fft7h&#34;:  100,
+    &#34;Aff5h&#34;:  101,
+    &#34;Fcc5h&#34;:  102,
+    &#34;Ffc3h&#34;:  103,
+    &#34;Ccp3h&#34;:  104,
+    &#34;Cpp5h&#34;:  105,
+    &#34;Poo9h&#34;:  106,
+    &#34;Ppo5h&#34;:  107,
+    &#34;Cpp1h&#34;:  108,
+    &#34;Poo1&#34;:   109,
+    &#34;Afp1&#34;:   110,
+    &#34;Fcc1h&#34;:  111,
+    &#34;Fcc2h&#34;:  112,
+    &#34;Afp2&#34;:   113,
+    &#34;Poo2&#34;:   114,
+    &#34;Cpp2h&#34;:  115,
+    &#34;Ppo6h&#34;:  116,
+    &#34;Poo10h&#34;: 117,
+    &#34;Cpp6h&#34;:  118,
+    &#34;Ccp4h&#34;:  119,
+    &#34;Ffc4h&#34;:  120,
+    &#34;Fcc6h&#34;:  121,
+    &#34;Aff6h&#34;:  122,
+    &#34;Fft8h&#34;:  123,
+    &#34;Fft10h&#34;: 124,
+    &#34;Ftt10h&#34;: 125,
+    &#34;Ttp8h&#34;:  126,
+    &#34;Tpp10h&#34;: 127
+}
+
+aux_channel = {
+    &#34;Aux1.1&#34;: 0,
+    &#34;Aux1.2&#34;: 1,
+    &#34;Aux2.1&#34;: 2,
+    &#34;Aux2.2&#34;: 3,
+    &#34;Aux3.1&#34;: 4,
+    &#34;Aux3.2&#34;: 5,
+    &#34;Aux4.1&#34;: 6,
+    &#34;Aux4.2&#34;: 7
+}</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="nvx" href="index.html">nvx</a></code></li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.7.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

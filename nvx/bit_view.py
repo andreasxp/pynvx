@@ -1,11 +1,11 @@
+"""A wrapper around some ctypes object, providing direct array-like access to the bits."""
 import ctypes
 
 
 class BitView:
-    """Provide array-like access to bits, folded into a ctypes value."""
     def __init__(self, value=ctypes.c_uint(0), begin=0, end=None):
-        """Constructor
-        Assigns value as a source of bits, with optional begin and end to limit bit visibility.
+        """A wrapper around some ctypes object, providing direct array-like access to the bits.
+        Constructor assigns `value` as a source of bits, with optional begin and end to limit bit visibility.
 
         Parameters
         ----------
@@ -35,12 +35,12 @@ class BitView:
     def __str__(self):
         return str(list(self))
 
-    def __getitem__(self, idx):
-        """Extract a bit
+    def __getitem__(self, index):
+        """View a bit at a specified index.
 
         Parameters
         ----------
-        idx : int
+        index : int
 
         Returns
         -------
@@ -52,13 +52,13 @@ class BitView:
         IndexError
             if index is not in range [0, len(self))
         """
-        if idx < 0 or idx >= len(self):
-            raise IndexError("Index (" + str(idx) + ") not in range [0, " + str(len(self)) + ")")
+        if index < 0 or index >= len(self):
+            raise IndexError("Index (" + str(index) + ") not in range [0, " + str(len(self)) + ")")
 
-        return bool(self.value.value & (1 << (self.begin + idx)))
+        return bool(self.value.value & (1 << (self.begin + index)))
 
     def __setitem__(self, index, x):
-        """Set a bit to value (True or False)
+        """Set a bit at `index` to value `x` (True or False).
 
         Parameters
         ----------

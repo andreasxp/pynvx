@@ -1,0 +1,758 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.7.2" />
+<title>nvx.channel_states_view API documentation</title>
+<meta name="description" content="A collection of classes for viewing EEG and AUX channel states (on/off)." />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{font-weight:bold}#index h4 + ul{margin-bottom:.6em}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>nvx.channel_states_view</code></h1>
+</header>
+<section id="section-intro">
+<p>A collection of classes for viewing EEG and AUX channel states (on/off).</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;A collection of classes for viewing EEG and AUX channel states (on/off).&#34;&#34;&#34;
+import ctypes
+from .channel_names import eeg_channel, aux_channel
+
+
+class EegStatesView:
+    def __init__(self, device):
+        &#34;&#34;&#34;A view into EEG channels&#39; states. (on/off).
+        This class is not intended to be constructed manually. An instance is returned by `ChannelStatesView.eeg`
+        property.
+
+        Parameters
+        ----------
+        device : Device
+            Device from which the states are requested.
+        &#34;&#34;&#34;
+        self.device = device
+
+    def __len__(self):
+        return self.device.eeg_count
+
+    def __getitem__(self, index):
+        &#34;&#34;&#34;Get an EEG channel state using a channel index.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self))
+
+        Returns
+        -------
+        bool
+            requested channel&#39;s state (on/off)
+        &#34;&#34;&#34;
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; EEG channels present)&#34;)
+
+        return self.device._channel_states[index]
+
+    def __setitem__(self, index, value):
+        &#34;&#34;&#34;Set an EEG channel state (on/off).
+        This function can only be called when the device is not running.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+        value : bool
+            State to set
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self))
+        RuntimeError
+            If the device is running when the function is called
+        &#34;&#34;&#34;
+        if self.device.is_running:
+            raise RuntimeError(&#34;cannot set a channel state when the device is running&#34;)
+
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; eeg channels present)&#34;)
+
+        states = self.device._channel_states
+        states[index] = ctypes.c_bool(value)
+        self.device._channel_states = states
+
+
+class AuxStatesView:
+    def __init__(self, device):
+        &#34;&#34;&#34;A view into aux channels&#39; states. (on/off).
+        This class is not intended to be constructed manually. An instance is returned by `ChannelStatesView.aux`
+        property.
+
+        Parameters
+        ----------
+        device : nvx.device.Device
+            Device from which the states are requested.
+        &#34;&#34;&#34;
+        self.device = device
+
+    def __len__(self):
+        return self.device.aux_count
+
+    def __getitem__(self, index):
+        &#34;&#34;&#34;Get an AUX channel state using a channel index.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self))
+
+        Returns
+        -------
+        bool
+            requested channel&#39;s state (on/off)
+        &#34;&#34;&#34;
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; AUX channels present)&#34;)
+
+        return self.device._channel_states[self.device.eeg_count + index]
+
+    def __setitem__(self, index, value):
+        &#34;&#34;&#34;Set an AUX channel state (on/off).
+        This function can only be called when the device is not running.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+        value : bool
+            State to set
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self)).
+        RuntimeError
+            If the device is running when the function is called.
+        &#34;&#34;&#34;
+        if self.device.is_running:
+            raise RuntimeError(&#34;cannot set a channel state when the device is running&#34;)
+
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; aux channels present)&#34;)
+
+        states = self.device._channel_states
+        states[self.device.eeg_count + index] = ctypes.c_bool(value)
+        self.device._channel_states = states
+
+
+class ChannelStatesView:
+    def __init__(self, device):
+        &#34;&#34;&#34;Provides a view into a device&#39;s channels&#39; states.
+        States can be accessed in two ways:
+        - view[&#39;T7&#39;] - by channel name (either EEG or AUX)
+        - view.eeg[0] - by index (or view.aux[0] for AUX channels)
+
+        This class is not intended to be constructed manually. An instance is returned by Device.channel_states
+        property.
+
+        Parameters
+        ----------
+        device : nvx.device.Device
+            Device from which the states are requested.
+        &#34;&#34;&#34;
+        self.device = device
+
+    @property
+    def eeg(self):
+        &#34;&#34;&#34;Get EEG channels&#39; states.&#34;&#34;&#34;
+        return EegStatesView(self.device)
+
+    @property
+    def aux(self):
+        &#34;&#34;&#34;Get AUX channels&#39; states.&#34;&#34;&#34;
+        return AuxStatesView(self.device)
+
+    def __iter__(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX channel keys.&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield key
+        for key in aux_channel:
+            yield key
+
+    def keys(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX channel keys.&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield key
+        for key in aux_channel:
+            yield key
+
+    def values(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX channel states.&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield self[key]
+        for key in aux_channel:
+            yield self[key]
+
+    def items(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX (keys, values).&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield (key, self[key])
+        for key in aux_channel:
+            yield (key, self[key])
+
+    def __contains__(self, key):
+        &#34;&#34;&#34;Checks if a channel with a particular name exists.
+
+        Parameters
+        ----------
+        key : str
+            Name of an EEG or AUX channel.
+
+        Returns
+        -------
+        bool
+            True if this channel exists, False otherwise.
+
+        See Also
+        --------
+        nvx.channel_names
+            A list of available channel names.
+        &#34;&#34;&#34;
+        if key in eeg_channel or key in aux_channel:
+            return True
+        return False
+
+    def __getitem__(self, key):
+        &#34;&#34;&#34;Get a channel state (on/off) using a channel name.
+
+        Parameters
+        ----------
+        key : str
+            Name of an EEG or AUX channel that is present in channel_names.py
+
+        Raises
+        ------
+        KeyError
+            If name is not a valid EEG/AUX channel name.
+
+        Returns
+        -------
+        bool
+            Requested channel&#39;s state (on/off).
+        &#34;&#34;&#34;
+        if key in eeg_channel:
+            return self.eeg[eeg_channel[key]]
+        else:
+            return self.aux[aux_channel[key]]
+
+    def __setitem__(self, key, value):
+        &#34;&#34;&#34;Set a channel state (on/off) using a channel name.
+
+        Parameters
+        ----------
+        key : str
+            Name of an EEG or AUX channel that is present in channel_names.py
+        value : bool
+            State to set
+
+        Raises
+        ------
+        KeyError
+            If name is not a valid EEG/AUX channel name.
+        &#34;&#34;&#34;
+        if key in eeg_channel:
+            self.eeg[eeg_channel[key]] = value
+        else:
+            self.aux[aux_channel[key]] = value
+
+    def __str__(self):
+        return str(dict(self))</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="nvx.channel_states_view.AuxStatesView"><code class="flex name class">
+<span>class <span class="ident">AuxStatesView</span></span>
+<span>(</span><span>device)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>A view into aux channels' states. (on/off).
+This class is not intended to be constructed manually. An instance is returned by <a title="nvx.channel_states_view.ChannelStatesView.aux" href="#nvx.channel_states_view.ChannelStatesView.aux"><code>ChannelStatesView.aux</code></a>
+property.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>device</code></strong> :&ensp;<a title="nvx.device.Device" href="device.html#nvx.device.Device"><code>Device</code></a></dt>
+<dd>Device from which the states are requested.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class AuxStatesView:
+    def __init__(self, device):
+        &#34;&#34;&#34;A view into aux channels&#39; states. (on/off).
+        This class is not intended to be constructed manually. An instance is returned by `ChannelStatesView.aux`
+        property.
+
+        Parameters
+        ----------
+        device : nvx.device.Device
+            Device from which the states are requested.
+        &#34;&#34;&#34;
+        self.device = device
+
+    def __len__(self):
+        return self.device.aux_count
+
+    def __getitem__(self, index):
+        &#34;&#34;&#34;Get an AUX channel state using a channel index.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self))
+
+        Returns
+        -------
+        bool
+            requested channel&#39;s state (on/off)
+        &#34;&#34;&#34;
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; AUX channels present)&#34;)
+
+        return self.device._channel_states[self.device.eeg_count + index]
+
+    def __setitem__(self, index, value):
+        &#34;&#34;&#34;Set an AUX channel state (on/off).
+        This function can only be called when the device is not running.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+        value : bool
+            State to set
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self)).
+        RuntimeError
+            If the device is running when the function is called.
+        &#34;&#34;&#34;
+        if self.device.is_running:
+            raise RuntimeError(&#34;cannot set a channel state when the device is running&#34;)
+
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; aux channels present)&#34;)
+
+        states = self.device._channel_states
+        states[self.device.eeg_count + index] = ctypes.c_bool(value)
+        self.device._channel_states = states</code></pre>
+</details>
+</dd>
+<dt id="nvx.channel_states_view.ChannelStatesView"><code class="flex name class">
+<span>class <span class="ident">ChannelStatesView</span></span>
+<span>(</span><span>device)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>Provides a view into a device's channels' states.
+States can be accessed in two ways:
+- view['T7'] - by channel name (either EEG or AUX)
+- view.eeg[0] - by index (or view.aux[0] for AUX channels)</p>
+<p>This class is not intended to be constructed manually. An instance is returned by Device.channel_states
+property.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>device</code></strong> :&ensp;<a title="nvx.device.Device" href="device.html#nvx.device.Device"><code>Device</code></a></dt>
+<dd>Device from which the states are requested.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class ChannelStatesView:
+    def __init__(self, device):
+        &#34;&#34;&#34;Provides a view into a device&#39;s channels&#39; states.
+        States can be accessed in two ways:
+        - view[&#39;T7&#39;] - by channel name (either EEG or AUX)
+        - view.eeg[0] - by index (or view.aux[0] for AUX channels)
+
+        This class is not intended to be constructed manually. An instance is returned by Device.channel_states
+        property.
+
+        Parameters
+        ----------
+        device : nvx.device.Device
+            Device from which the states are requested.
+        &#34;&#34;&#34;
+        self.device = device
+
+    @property
+    def eeg(self):
+        &#34;&#34;&#34;Get EEG channels&#39; states.&#34;&#34;&#34;
+        return EegStatesView(self.device)
+
+    @property
+    def aux(self):
+        &#34;&#34;&#34;Get AUX channels&#39; states.&#34;&#34;&#34;
+        return AuxStatesView(self.device)
+
+    def __iter__(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX channel keys.&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield key
+        for key in aux_channel:
+            yield key
+
+    def keys(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX channel keys.&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield key
+        for key in aux_channel:
+            yield key
+
+    def values(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX channel states.&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield self[key]
+        for key in aux_channel:
+            yield self[key]
+
+    def items(self):
+        &#34;&#34;&#34;An iterator to the EEG+AUX (keys, values).&#34;&#34;&#34;
+        for key in eeg_channel:
+            yield (key, self[key])
+        for key in aux_channel:
+            yield (key, self[key])
+
+    def __contains__(self, key):
+        &#34;&#34;&#34;Checks if a channel with a particular name exists.
+
+        Parameters
+        ----------
+        key : str
+            Name of an EEG or AUX channel.
+
+        Returns
+        -------
+        bool
+            True if this channel exists, False otherwise.
+
+        See Also
+        --------
+        nvx.channel_names
+            A list of available channel names.
+        &#34;&#34;&#34;
+        if key in eeg_channel or key in aux_channel:
+            return True
+        return False
+
+    def __getitem__(self, key):
+        &#34;&#34;&#34;Get a channel state (on/off) using a channel name.
+
+        Parameters
+        ----------
+        key : str
+            Name of an EEG or AUX channel that is present in channel_names.py
+
+        Raises
+        ------
+        KeyError
+            If name is not a valid EEG/AUX channel name.
+
+        Returns
+        -------
+        bool
+            Requested channel&#39;s state (on/off).
+        &#34;&#34;&#34;
+        if key in eeg_channel:
+            return self.eeg[eeg_channel[key]]
+        else:
+            return self.aux[aux_channel[key]]
+
+    def __setitem__(self, key, value):
+        &#34;&#34;&#34;Set a channel state (on/off) using a channel name.
+
+        Parameters
+        ----------
+        key : str
+            Name of an EEG or AUX channel that is present in channel_names.py
+        value : bool
+            State to set
+
+        Raises
+        ------
+        KeyError
+            If name is not a valid EEG/AUX channel name.
+        &#34;&#34;&#34;
+        if key in eeg_channel:
+            self.eeg[eeg_channel[key]] = value
+        else:
+            self.aux[aux_channel[key]] = value
+
+    def __str__(self):
+        return str(dict(self))</code></pre>
+</details>
+<h3>Instance variables</h3>
+<dl>
+<dt id="nvx.channel_states_view.ChannelStatesView.aux"><code class="name">var <span class="ident">aux</span></code></dt>
+<dd>
+<section class="desc"><p>Get AUX channels' states.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def aux(self):
+    &#34;&#34;&#34;Get AUX channels&#39; states.&#34;&#34;&#34;
+    return AuxStatesView(self.device)</code></pre>
+</details>
+</dd>
+<dt id="nvx.channel_states_view.ChannelStatesView.eeg"><code class="name">var <span class="ident">eeg</span></code></dt>
+<dd>
+<section class="desc"><p>Get EEG channels' states.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">@property
+def eeg(self):
+    &#34;&#34;&#34;Get EEG channels&#39; states.&#34;&#34;&#34;
+    return EegStatesView(self.device)</code></pre>
+</details>
+</dd>
+</dl>
+<h3>Methods</h3>
+<dl>
+<dt id="nvx.channel_states_view.ChannelStatesView.items"><code class="name flex">
+<span>def <span class="ident">items</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>An iterator to the EEG+AUX (keys, values).</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def items(self):
+    &#34;&#34;&#34;An iterator to the EEG+AUX (keys, values).&#34;&#34;&#34;
+    for key in eeg_channel:
+        yield (key, self[key])
+    for key in aux_channel:
+        yield (key, self[key])</code></pre>
+</details>
+</dd>
+<dt id="nvx.channel_states_view.ChannelStatesView.keys"><code class="name flex">
+<span>def <span class="ident">keys</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>An iterator to the EEG+AUX channel keys.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def keys(self):
+    &#34;&#34;&#34;An iterator to the EEG+AUX channel keys.&#34;&#34;&#34;
+    for key in eeg_channel:
+        yield key
+    for key in aux_channel:
+        yield key</code></pre>
+</details>
+</dd>
+<dt id="nvx.channel_states_view.ChannelStatesView.values"><code class="name flex">
+<span>def <span class="ident">values</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>An iterator to the EEG+AUX channel states.</p></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def values(self):
+    &#34;&#34;&#34;An iterator to the EEG+AUX channel states.&#34;&#34;&#34;
+    for key in eeg_channel:
+        yield self[key]
+    for key in aux_channel:
+        yield self[key]</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="nvx.channel_states_view.EegStatesView"><code class="flex name class">
+<span>class <span class="ident">EegStatesView</span></span>
+<span>(</span><span>device)</span>
+</code></dt>
+<dd>
+<section class="desc"><p>A view into EEG channels' states. (on/off).
+This class is not intended to be constructed manually. An instance is returned by <a title="nvx.channel_states_view.ChannelStatesView.eeg" href="#nvx.channel_states_view.ChannelStatesView.eeg"><code>ChannelStatesView.eeg</code></a>
+property.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>device</code></strong> :&ensp;<code>Device</code></dt>
+<dd>Device from which the states are requested.</dd>
+</dl></section>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class EegStatesView:
+    def __init__(self, device):
+        &#34;&#34;&#34;A view into EEG channels&#39; states. (on/off).
+        This class is not intended to be constructed manually. An instance is returned by `ChannelStatesView.eeg`
+        property.
+
+        Parameters
+        ----------
+        device : Device
+            Device from which the states are requested.
+        &#34;&#34;&#34;
+        self.device = device
+
+    def __len__(self):
+        return self.device.eeg_count
+
+    def __getitem__(self, index):
+        &#34;&#34;&#34;Get an EEG channel state using a channel index.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self))
+
+        Returns
+        -------
+        bool
+            requested channel&#39;s state (on/off)
+        &#34;&#34;&#34;
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; EEG channels present)&#34;)
+
+        return self.device._channel_states[index]
+
+    def __setitem__(self, index, value):
+        &#34;&#34;&#34;Set an EEG channel state (on/off).
+        This function can only be called when the device is not running.
+
+        Parameters
+        ----------
+        index : int
+            Channel index
+        value : bool
+            State to set
+
+        Raises
+        ------
+        IndexError
+            If index is not in range [0, len(self))
+        RuntimeError
+            If the device is running when the function is called
+        &#34;&#34;&#34;
+        if self.device.is_running:
+            raise RuntimeError(&#34;cannot set a channel state when the device is running&#34;)
+
+        size = len(self)
+        if not 0 &lt;= index &lt; size:
+            raise IndexError(&#34;no channel with index &#34; + str(index) +
+                             &#34; (only &#34; + str(size) + &#34; eeg channels present)&#34;)
+
+        states = self.device._channel_states
+        states[index] = ctypes.c_bool(value)
+        self.device._channel_states = states</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="nvx" href="index.html">nvx</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="nvx.channel_states_view.AuxStatesView" href="#nvx.channel_states_view.AuxStatesView">AuxStatesView</a></code></h4>
+</li>
+<li>
+<h4><code><a title="nvx.channel_states_view.ChannelStatesView" href="#nvx.channel_states_view.ChannelStatesView">ChannelStatesView</a></code></h4>
+<ul class="">
+<li><code><a title="nvx.channel_states_view.ChannelStatesView.aux" href="#nvx.channel_states_view.ChannelStatesView.aux">aux</a></code></li>
+<li><code><a title="nvx.channel_states_view.ChannelStatesView.eeg" href="#nvx.channel_states_view.ChannelStatesView.eeg">eeg</a></code></li>
+<li><code><a title="nvx.channel_states_view.ChannelStatesView.items" href="#nvx.channel_states_view.ChannelStatesView.items">items</a></code></li>
+<li><code><a title="nvx.channel_states_view.ChannelStatesView.keys" href="#nvx.channel_states_view.ChannelStatesView.keys">keys</a></code></li>
+<li><code><a title="nvx.channel_states_view.ChannelStatesView.values" href="#nvx.channel_states_view.ChannelStatesView.values">values</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="nvx.channel_states_view.EegStatesView" href="#nvx.channel_states_view.EegStatesView">EegStatesView</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.7.2</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

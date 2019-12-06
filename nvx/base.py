@@ -1,7 +1,4 @@
-"""
-Base functions, and the raw DLL
-
-"""
+"""General variables and functions affecting all devices."""
 import ctypes
 import os
 from .utility import handle_error, is_64bit
@@ -11,18 +8,17 @@ from .structs import Version
 raw = None
 if is_64bit():
     raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/Dll/x64/Release/NVX136.dll")
-    raw.NVXOpen.restype = ctypes.c_void_p
 else:
     raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/Dll/x86/Release/NVX136.dll")
 
 
 def get_dll_version():
-    """Get package DLL version
+    """Get driver dll's version.
 
     Returns
     -------
     int
-        current DLL version
+        current dll version
     """
     ver = Version()
     handle_error(
@@ -32,7 +28,7 @@ def get_dll_version():
 
 
 def set_emulation(state):
-    """Enable/disable emulation state
+    """Enable/disable emulation state.
     Emulation state usually contains 1 device, and is useful for testing.
 
     Parameters
@@ -46,7 +42,7 @@ def set_emulation(state):
 
 
 def get_count():
-    """Count all connected hardware devices
+    """Count all connected hardware devices.
     You can operate a device by creating a Device with an index in range [0, get_count()).
 
     Returns

@@ -1,7 +1,16 @@
+"""`ctypes`-compatible enumeration class.
+Adapted from https://code.activestate.com/recipes/576415/
+"""
 from ctypes import c_int
 
 
 class EnumerationType(type(c_int)):
+    """Metatype for all ctype enumerations.
+
+    See also
+    --------
+    CEnum : actual ctypes enum
+    """
     def __new__(metacls, name, bases, dict):
         if not "_members_" in dict:
             _members_ = {}
@@ -24,6 +33,9 @@ class EnumerationType(type(c_int)):
 
 
 class CEnum(c_int, metaclass=EnumerationType):
+    """A ctypes enumeration type.
+    This enumeration is less customizable compared to its C equivalent: it always uses c_int as its underlying type.
+    """
     _members_ = {}
 
     def __repr__(self):

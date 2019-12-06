@@ -1,10 +1,11 @@
+"""A collection of wrappers for C structs defined by the driver."""
 import ctypes
 from .c_enum import CEnum
 from .globals import DEVICES_COUNT_MAX
 
 
-# Version info about NVX
 class Version(ctypes.Structure):
+    """Version info about NVX."""
     _fields_ = [
         ('dll', ctypes.c_ulonglong),
         ('driver', ctypes.c_ulonglong),
@@ -15,8 +16,8 @@ class Version(ctypes.Structure):
     ]
 
 
-# Mode enum
 class Mode(CEnum):
+    """Mode enum."""
     NORMAL = 0  # normal data acquisition
     ACTIVE_SHIELD = 1  # data acquisition with ActiveShield
     IMPEDANCE = 2  # impedance measure
@@ -25,21 +26,21 @@ class Mode(CEnum):
     IMP_GND = 5  # impedance measure, all electrodes connected to gnd
 
 
-# Samples rate (physical) enum
 class Rate(CEnum):
+    """Samples rate (physical) enum."""
     KHZ_10 = 0  # 10 kHz, all channels (default mode)
     KHZ_50 = 1  # 50 kHz, all channels
     KHZ_100 = 2  # 100 kHz, max 64 channels
 
 
-# ADC data filter, obsolete, not used
 class AdcFilter(CEnum):
+    """ADC data filter, obsolete, not used."""
     NATIVE = 0  # no ADC data filter
     AVERAGING_2 = 1  # ADC data moving averaging filter by 2 samples
 
 
-# ADC data decimation
 class Decimation(CEnum):
+    """ADC data decimation."""
     DCM_0 = 0  # no decimation
     DCM_2 = 2  # decimation by 2
     DCM_5 = 5
@@ -57,8 +58,8 @@ class Settings(ctypes.Structure):
     ]
 
 
-# Device property structure
 class Property(ctypes.Structure):
+    """Device property structure."""
     _fields_ = [
         ('count_eeg', ctypes.c_uint),  # numbers of Eeg channels
         ('count_aux', ctypes.c_uint),  # numbers of Aux channels
@@ -72,20 +73,20 @@ class Property(ctypes.Structure):
     ]
 
 
-# Device gain structure
 class Gain(CEnum):
+    """Device gain structure."""
     GAIN_1 = 0  # gain = 1
     GAIN_5 = 1  # gain = 5
 
 
-# Device power saving structure
 class PowerSave(CEnum):
+    """Device power saving structure."""
     DISABLE = 0  # power save disable
     ENABLE = 1  # power save enable, only 64 Eeg channels and Aux
 
 
-# Device property structure
 class DataStatus(ctypes.Structure):
+    """Device property structure."""
     _fields_ = [
         ('samples', ctypes.c_uint),  # total samples
         ('errors', ctypes.c_uint),  # total errors
@@ -94,8 +95,8 @@ class DataStatus(ctypes.Structure):
     ]
 
 
-# Device error status
 class ErrorStatus(ctypes.Structure):
+    """Device error status."""
     _fields_ = [
         ('samples', ctypes.c_uint),  # total samples
         ('crc', ctypes.c_uint),  # crc errors on data samples
@@ -104,9 +105,11 @@ class ErrorStatus(ctypes.Structure):
     ]
 
 
-# Impedance setup structure
-# Between Good and Bad level is indicate as both leds (yellow emulation)
 class ImpedanceSetup(ctypes.Structure):
+    """Impedance setup structure.
+
+    Between Good and Bad level is indicate as both leds (yellow emulation).
+    """
     _fields_ = [
         ('good', ctypes.c_uint),  # good level (green led indication), Ohm
         ('bad', ctypes.c_uint),  # bad level (red led indication), Ohm
@@ -115,8 +118,8 @@ class ImpedanceSetup(ctypes.Structure):
     ]
 
 
-# Impedance control structure
 class ImpedanceMode(ctypes.Structure):
+    """Impedance control structure."""
     _fields_ = [
         # read-write information
         ('splitter', ctypes.c_uint),  # Current splitter for impedance measure, (0 .. splitters - 1).
@@ -130,14 +133,14 @@ class ImpedanceMode(ctypes.Structure):
     ]
 
 
-# Impedance scanning frequency structure
 class ScanFreq(CEnum):
+    """Impedance scanning frequency structure."""
     HZ_30 = 0  # freq = 30 Hz
     HZ_80 = 1  # freq = 80 Hz
 
 
-#  Impedance settings structure
 class ImpedanceSettings(ctypes.Structure):
+    """Impedance settings structure."""
     _fields_ = [
         ('scan_freq', ScanFreq),  # scanning frequency
     ]
@@ -162,8 +165,8 @@ class Voltages(ctypes.Structure):
     ]
 
 
-# Frequency bandwidth structure
 class FrequencyBandwidth(ctypes.Structure):
+    """Frequency bandwidth structure."""
     _fields_ = [
         ('sample_rate', ctypes.c_uint),  # sample rate of device, mHz
         ('cutoff_freq', ctypes.c_uint),  # cutoff frequency of the -3 dB, mHz

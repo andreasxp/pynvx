@@ -1,16 +1,24 @@
-"""
-NVX Data sample
-
-"""
+"""NVX Data sample."""
 import ctypes
 import numpy as np
 from .channel_names import eeg_channel, aux_channel
 
 
-# Sample holds one data sample from a Device
 class Sample:
-    """Sample represents a data slice, returned by Device.get_data"""
     def __init__(self, raw_data, eeg_count, aux_count):
+        """A data slice returned by nvx.device.Device
+        This class is not intended to be constructed manually. An instance is returned by nvx.device.Device._get_data
+        function or as part of an array in nvx.device.Device.pull_chunk.
+
+        Parameters
+        ----------
+        raw_data
+            A raw array of mixed types returned by the driver.
+        eeg_count : int
+            Amount of present EEG channels.
+        aux_count : int
+            Amount of present AUX channels.
+        """
         size = eeg_count + aux_count
         ctypes_array = (ctypes.c_int32 * size).from_address(raw_data.value)
 
@@ -30,7 +38,7 @@ class Sample:
                                    ctypes.POINTER(ctypes.c_uint))[0]
 
     def eeg_data(self, index):
-        """Get data from an eeg channel
+        """Get data from an EEG channel.
         
         Parameters
         ----------
@@ -39,7 +47,7 @@ class Sample:
         Returns
         -------
         int
-            requested data
+            Requested data.
         """
         if index >= self.eeg_count:
             raise ValueError(
@@ -49,7 +57,7 @@ class Sample:
         return self.data[index]
 
     def aux_data(self, index):
-        """Get data from an aux channel
+        """Get data from an aux channel.
         
         Parameters
         ----------
@@ -58,7 +66,7 @@ class Sample:
         Returns
         -------
         int
-            requested data
+            Requested data.
         """
         if index >= self.aux_count:
             raise ValueError(
@@ -68,22 +76,22 @@ class Sample:
         return self.data[self.eeg_count + index]
 
     def __getitem__(self, channel_name):
-        """Get data from an eeg or aux channel by name
+        """Get data from an EEG or AUX channel by name.
 
         Parameters
         ----------
         channel_name : str
-            Name of an EEG or AUX channel that is present in channel_names.py
+            Name of an EEG or AUX channel that is present in nvx.channel_names
 
         Raises
         ------
         KeyError
-            if channel_name is not a valid eeg/aux channel name
+            if channel_name is not a valid EEG/AUX channel name
 
         Returns
         -------
         int
-            requested data
+            Requested data.
         """
         if channel_name in eeg_channel:
             return self.eeg_data(eeg_channel[channel_name])
@@ -91,7 +99,7 @@ class Sample:
             return self.aux_data(aux_channel[channel_name])
 
     def input_status(self, index):
-        """Get the digital status of an input channel
+        """Get the digital status of an input channel.
         
         Parameters
         ----------
@@ -100,12 +108,12 @@ class Sample:
         Raises
         ------
         ValueError
-            if index is not in range [0, 8)
+            If index is not in range [0, 8).
 
         Returns
         -------
         bool
-            channel status
+            Channel status.
         """
         if not 0 <= index < 8:
             raise ValueError("invalid index " + str(index) + ": there are 8 input channels")
@@ -114,7 +122,7 @@ class Sample:
         return bool(self._status & (1 << index))
 
     def output_status(self, index):
-        """Get the digital status of an output channel
+        """Get the digital status of an output channel.
         
         Parameters
         ----------
@@ -123,12 +131,12 @@ class Sample:
         Raises
         ------
         ValueError
-            if index is not in range [0, 8)
+            If index is not in range [0, 8).
 
         Returns
         -------
         bool
-            channel status
+            Channel status.
         """
         if not 0 <= index < 8:
             raise ValueError("invalid index " + str(index) + ": there are 8 output channels")

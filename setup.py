@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='pynvx',
-      version='0.2',
+      version='0.3',
       description='NVX dll wrapper for python',
       url='https://github.com/andreasxp/pynvx',
       author='Andrey Zhukov',

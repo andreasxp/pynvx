@@ -1,7 +1,4 @@
-"""
-NVX hardware device
-
-"""
+"""NVX hardware device representation."""
 import ctypes
 from threading import Thread
 import time
@@ -19,11 +16,10 @@ from .channel_states_view import ChannelStatesView
 
 
 class Device:
-    """Device represents a physical device connected to the system"""
     def __init__(self, index: int, buffer_time: float = 1.0):
-        """Constructor
-        Opens a hardware device for work.
-        Device is closed when the object is deleted
+        """A representation of a physical device connected to the system.
+        Constructor opens a hardware device for work.
+        Device is closed automatically when the object is deleted.
 
         Parameters
         ----------
@@ -68,22 +64,22 @@ class Device:
 
     @property
     def index(self):
-        """Get device index"""
+        """Device's index in the system."""
         return self._index
 
     @property
     def is_running(self):
-        """Get the state of the data acquisition process"""
+        """State of the data acquisition process."""
         return self._is_running
 
     @property
     def version(self):
-        """Version info about NVX
+        """Version info about NVX.
 
         Returns
         -------
-        structs.Version
-            NVX version info. See structs.py
+        nvx.structs.Version
+            NVX version info. See nvx.structs
         """
         ver = Version()
         handle_error(raw.NVXGetVersion(self.device_handle, ctypes.byref(ver)))
@@ -92,15 +88,15 @@ class Device:
     # Settings and their properties ====================================================================================
     @property
     def _settings(self):
-        """Get device acquisition settings
+        """Device acquisition settings.
         This property is for internal use. Struct Settings has 4 members, (mode, rate, adc_filter, decimation), of which
         mode, rate and decimation can be accessed via their own properties (acquisition_mode, rate/source_rate and
-        decimation), and adc_filter is deprecated in the DLL.
+        decimation), and adc_filter is deprecated in the dll.
 
         Returns
         -------
-        structs.Settings
-            device settings. See structs.py
+        nvx.structs.Settings
+            device settings. See nvx.structs
         """
         result = Settings()
         handle_error(raw.NVXGetSettings(self.device_handle, ctypes.byref(result)))
@@ -113,11 +109,11 @@ class Device:
         mode, rate and decimation can be accessed via their own properties (acquisition_mode, rate/source_rate and
         decimation), and adc_filter is deprecated in the DLL.
 
-        Note: rate property uses structs.Property.rate as well as structs.Settings.rate.
+        Rate property affects nvx.structs.Property.rate as well as nvx.structs.Settings.rate.
         
         Parameters
         ----------
-        value : structs.Settings
+        value : nvx.structs.Settings
         """
         handle_error(raw.NVXSetSettings(self.device_handle, ctypes.byref(value)))
 
@@ -144,12 +140,12 @@ class Device:
     # Properties and their properties ==================================================================================
     @property
     def _properties(self):
-        """Get device acquisition _properties
+        """Get device acquisition _properties.
 
         Returns
         -------
-        structs.Property
-            device property. See structs.py
+        nvx.structs.Property
+            device property. See nvx.structs
         """
         prop = Property()
         handle_error(raw.NVXGetProperty(self.device_handle, ctypes.byref(prop)))
@@ -183,13 +179,13 @@ class Device:
         Returns
         -------
         int
-            device's internal pull rate. Always one of (10000, 50000, 100000). Default is 10000
+            device's internal pull rate. Always one of (10000, 50000, 100000). Default is 10000.
         """
         return int(self._properties.rate)
 
     @property
     def eeg_resolution(self):
-        """Get the EEG amplitude scale coefficients, in V/bit
+        """Get the EEG amplitude scale coefficients, in V/bit.
 
         Returns
         -------
@@ -199,7 +195,7 @@ class Device:
 
     @property
     def aux_resolution(self):
-        """Get the AUX amplitude scale coefficients, in V/bit
+        """Get the AUX amplitude scale coefficients, in V/bit.
 
         Returns
         -------
@@ -209,7 +205,7 @@ class Device:
 
     @property
     def eeg_range(self):
-        """Get the EEG input range peak-peak, in V
+        """Get the EEG input range peak-peak, in V.
 
         Returns
         -------
@@ -219,7 +215,7 @@ class Device:
 
     @property
     def aux_range(self):
-        """Get the AUX input range peak-peak, in V
+        """Get the AUX input range peak-peak, in V.
 
         Returns
         -------
@@ -230,19 +226,26 @@ class Device:
     # Adjusted rate property ===========================================================================================
     @property
     def rate(self):
-        """Get device's pull rate.
+        """Device's pull rate.
         This is the rate at which the device will output values, and is equal to source_rate by default.
         Otherwise, it is usually lower, and some samples will be discarded to meet this rate.
 
         Returns
         -------
         int
-            device's sample output rate in range [1, 100000]
+            device's sample output rate in range [1, 100000] (samples/s).
         """
         return self._rate
 
     @rate.setter
     def rate(self, value):
+        """Set device's pull rate.
+
+        Parameters
+        ----------
+        value : int
+            device's sample output rate in range [1, 100000] (samples/s).
+        """
         if value <= 0:
             raise ValueError("sampling frequency too low: must not be less than 1, got " + str(value))
         elif value > 100000:
@@ -254,14 +257,14 @@ class Device:
     # ==================================================================================================================
 
     def _new_buffer(self):
-        """Create a new internal buffer
+        """Create a new internal buffer.
         Not recommended for external use.
         """
         return RingBuffer(math.ceil(self.rate * self._buffer_time), dtype=object)
 
     def start(self):
-        """Start data acquisition
-        Starts the acquiring data process on the device. If data acquisition was already running, does nothing.
+        """Start data acquisition.
+        If data acquisition was already running, does nothing.
         """
         if not self.is_running:
             self._buffer = self._new_buffer()
@@ -270,8 +273,8 @@ class Device:
             self._collector_thread.start()
 
     def stop(self):
-        """Stop data acquisition
-        Stops the device from acquiring data. If data acquisition was not running, does nothing.
+        """Stop data acquisition.
+        If data acquisition was not running, does nothing.
         """
         if self.is_running:
             self._is_running = False
@@ -282,13 +285,16 @@ class Device:
     def delay_tolerance(self):
         """Get device's delay tolerance.
         Delay tolerance represents time in seconds, how much the device is allowed to wait before attempting to pull a
-        data sample. Default time is 0.01 seconds, and can be set to 0 (although that might lead to inconsistent pull
-        times due to thread locks fighting).
+        data sample. Even with this time, the collector thread will sleep only when it has collected all the samples
+        that were available.
+
+        Default time is 0.01 seconds, and can be set to 0 (although that might lead to inconsistent pull times due to
+        thread locks fighting).
 
         Returns
         -------
         float
-            Delay tolerance, seconds
+            Delay tolerance, seconds.
         """
         return self._delay_tolerance
 
@@ -296,8 +302,11 @@ class Device:
     def delay_tolerance(self, value):
         """Set a new delay tolerance.
         Delay tolerance represents time in seconds, how much the device is allowed to wait before attempting to pull a
-        data sample. Default time is 0.01 seconds. Delay tolerance is used in the collector thread, and thus cannot be
-        set when the device is running.
+        data sample. Even with this time, the collector thread will sleep only when it has collected all the samples
+        that were available.
+
+        Default time is 0.01 seconds. Delay tolerance is used in the collector thread, and thus cannot be set when the
+        device is running.
 
         Warnings
         --------
@@ -306,28 +315,33 @@ class Device:
         Parameters
         ----------
         value : float
-            delay tolerance in seconds
+            Delay tolerance in seconds (must be not less than 0).
 
         Raises
         ------
+        ValueError
+            If the passed value is less than 0.
         RuntimeError
-            if the device is currently running
+            If the device is currently running.
         """
+        if value < 0:
+            raise ValueError("delay_tolerance cannot be less than 0")
+
         if self.is_running:
             raise RuntimeError("delay_tolerance cannot be set when the device is running")
         self._delay_tolerance = value
 
     def _get_data(self):
-        """Get acquisition data
+        """Get acquisition data.
         Returns a data sample or None, if there are no more samples generated.
-        Not recommended for external use. Consider using pull method instead.
+        Not recommended for external use. Consider using Device.pull_chunk method instead.
 
         When the device is running, this class calls this function until there are no more samples to get.
         Otherwise, the internal buffer may overflow.
 
         Returns
         -------
-        sample.Sample or None
+        nvx.sample.Sample or None
             possible data sample. See sample.py
         """
         buffer_size_bytes = self.eeg_count * 4 + self.aux_count * 4 + 8
@@ -354,7 +368,7 @@ class Device:
                 time.sleep(self.delay_tolerance)
 
     def _process(self, sample):
-        """Process a sample.
+        """Process a sample (figure out if it should be discarded to keep user-specified rate).
         Returns True if a sample is to be accepted.
         Not recommended for external use.
         """
@@ -371,8 +385,8 @@ class Device:
 
         Returns
         -------
-        list
-            requested samples. list can be empty, if no samples were generated since last call.
+        nvx.ring_buffer.RingBuffer
+            Requested samples. list can be empty, if no samples were generated since last call.
         """
         # TODO: is this actually thread-safe?
         result, self._buffer = self._buffer, self._new_buffer()
@@ -380,12 +394,12 @@ class Device:
 
     @property
     def _data_status(self):
-        """Get device acquisition data status
+        """Get device acquisition data status.
 
         Returns
         -------
-        structs.DataStatus
-            device data status. See structs.py
+        nvx.structs.DataStatus
+            device data status. See nvx.structs
         """
         status = DataStatus()
         handle_error(raw.NVXGetDataStatus(self.device_handle, ctypes.byref(status)))
@@ -393,12 +407,12 @@ class Device:
 
     @property
     def error_status(self):
-        """Get device acquisition error status
+        """Get device acquisition error status.
 
         Returns
         -------
-        structs.ErrorStatus
-            device error status. See structs.py
+        nvx.structs.ErrorStatus
+            device error status. See nvx.structs
         """
         status = ErrorStatus()
         handle_error(raw.NVXGetErrorStatus(self.device_handle, ctypes.byref(status)))
@@ -414,7 +428,7 @@ class Device:
         Returns
         -------
         int
-            samples count
+            Samples count.
         """
         return self._data_status.samples
 
@@ -431,13 +445,17 @@ class Device:
 
     @property
     def aux_gain(self):
-        """Get aux gain
+        """Get AUX gain.
         While internally Gain is used as an enum, this function returns an int for convenience.
 
         Returns
         -------
         int
-            gain value (1 or 5). See also structs.Gain
+            gain value (1 or 5).
+
+        See Also
+        --------
+        nvx.structs.Gain
         """
         gain = Gain()
         handle_error(raw.NVXGetAuxGain(self.device_handle, ctypes.byref(gain)))
@@ -448,7 +466,7 @@ class Device:
 
     @aux_gain.setter
     def aux_gain(self, value):
-        """Set aux gain
+        """Set AUX gain.
         While internally Gain is used as an enum, this function accepts an int for convenience. That means that the only
         acceptable values for gain are 1 and 5.
 
@@ -460,7 +478,11 @@ class Device:
         Parameters
         ----------
         value : int
-            gain value. See structs.py
+            gain value.
+
+        See Also
+        --------
+        nvx.structs.Gain
         """
         gain = Gain()
         if value == 1:
@@ -473,7 +495,7 @@ class Device:
 
     @property
     def power_save(self):
-        """Get power save mode
+        """Get power save mode.
 
         Returns
         -------
@@ -488,7 +510,7 @@ class Device:
 
     @power_save.setter
     def power_save(self, value):
-        """Set power save mode
+        """Set power save mode.
 
         Parameters
         ----------
@@ -505,7 +527,8 @@ class Device:
     def impedance_data(self):
         """Get impedance values for all EEG channels and ground in Ohm
         
-        Remarks (notes):
+        Notes
+        -----
         - ~750 ms is required for measure impedance per 32 electrodes;
         - max impedance value ~ 300-500 kOhm;
         - impedance measure from 0 Ohm to 120 kOhm with accuracy +/- 15%;
@@ -516,8 +539,8 @@ class Device:
         
         Returns
         -------
-        impedance.Impedance
-            channels impedance. See impedance.py
+        nvx.impedance.Impedance
+            channels impedance. See nvx.impedance
         """
         buffer_size = self.eeg_count + 1
         buffer_size_bytes = buffer_size * 4
@@ -529,12 +552,12 @@ class Device:
 
     @property
     def impedance_setup(self):
-        """Get setup for impedance mode
+        """Get setup for impedance mode.
 
         Returns
         -------
-        structs.ImpedanceSetup
-            impedance setup. See structs.py
+        nvx.structs.ImpedanceSetup
+            impedance setup. See nvx.structs
         """
         setup = ImpedanceSetup()
         handle_error(raw.NVXImpedanceGetSetup(self.device_handle, ctypes.byref(setup)))
@@ -542,23 +565,23 @@ class Device:
 
     @impedance_setup.setter
     def impedance_setup(self, setup):
-        """Set setup for impedance mode
+        """Set setup for impedance mode.
 
         Parameters
         ----------
-        setup : structs.ImpedanceSetup
-            impedance setup. See structs.py
+        setup : nvx.structs.ImpedanceSetup
+            impedance setup. See nvx.structs
         """
         handle_error(raw.NVXImpedanceSetSetup(self.device_handle, ctypes.byref(setup)))
 
     @property
     def impedance_mode(self):
-        """Get current impedance mode
+        """Get current impedance mode.
 
         Returns
         -------
-        structs.ImpedanceMode
-            impedance mode. See structs.py
+        nvx.structs.ImpedanceMode
+            impedance mode. See nvx.structs
         """
         impedance_mode = ImpedanceMode()
         handle_error(raw.NVXImpedanceGetMode(self.device_handle, ctypes.byref(impedance_mode)))
@@ -566,19 +589,20 @@ class Device:
 
     @impedance_mode.setter
     def impedance_mode(self, mode):
-        """Set current impedance mode
+        """Set current impedance mode.
 
         Parameters
         ----------
-        mode : structs.ImpedanceMode
-            impedance mode. See structs.py
+        mode : nvx.structs.ImpedanceMode
+            impedance mode. See nvx.structs
         """
         handle_error(raw.NVXImpedanceGetMode(self.device_handle, ctypes.byref(mode)))
 
     def set_electrodes(self, values):
-        """Directly set (control) electrodes states (LEDs and analog switches) in all modes
+        """Directly set (control) electrodes states (LEDs and analog switches) in all modes.
         
-        Remarks (notes):
+        Notes
+        -----
         - by calling this function, direct control of electrodes starts automatically;
         - to disable direct control of electrodes call set_electrodes_auto;
         - currently, you need to set all electrodes states at once;
@@ -611,21 +635,21 @@ class Device:
         handle_error(raw.NVXSetElectrodes(self.device_handle, buffer, buffer_size_bytes))
 
     def set_electrodes_auto(self):
-        """Enable automatic LED control
-        If automatic LED control was disabled by the set_electrodes function, it can be restored by calling this
+        """Enable automatic LED control.
+        If automatic LED control was disabled by the Device.set_electrodes function, it can be restored by calling this.
         """
         handle_error(raw.NVXSetElectrodes(self.device_handle, None, 0))
 
     @property
     def impedance_scan_frequency(self):
-        """Get the impedance scanning frequency, in Hz
-        While internally frequency is used as an enum (structs.ScanFreq) packaged in
-        a struct (structs.ImpedanceSettings), this function returns an int for convenience.
+        """Get the impedance scanning frequency, in Hz.
+        While internally frequency is used as an enum (nvx.structs.ScanFreq) packaged in
+        a struct (nvx.structs.ImpedanceSettings), this function returns an int for convenience.
 
         Returns
         -------
         int
-            impedance scan frequency value (30 or 80 Hz). See also structs.ScanFreq
+            Impedance scan frequency value (30 or 80 Hz). See also nvx.structs.ScanFreq
         """
         imp_settings = ImpedanceSettings()
         handle_error(raw.NVXImpedanceGetSettings(self.device_handle, ctypes.byref(imp_settings)))
@@ -637,19 +661,19 @@ class Device:
 
     @impedance_scan_frequency.setter
     def impedance_scan_frequency(self, value):
-        """Set the impedance scanning frequency
-        While internally frequency is used as an enum (structs.ScanFreq) packaged in
-        a struct (structs.ImpedanceSettings), this function accepts an int for convenience.
+        """Set the impedance scanning frequency.
+        While internally frequency is used as an enum (nvx.structs.ScanFreq) packaged in
+        a struct (nvx.structs.ImpedanceSettings), this function accepts an int for convenience.
 
         Raises
         ------
         ValueError
-            if passed gain value is not 30 or 80.
+            If passed gain value is not 30 or 80.
 
         Parameters
         ----------
         value : int
-            impedance scan frequency value value. See also structs.ScanFreq
+            Impedance scan frequency value value. See also nvx.structs.ScanFreq
         """
         imp_settings = ImpedanceSettings()
         if value == 30:
@@ -662,12 +686,12 @@ class Device:
 
     @property
     def voltages(self):
-        """Get voltages
+        """Get voltages.
 
         Returns
         -------
-        structs.Voltages
-            voltages. See structs.py
+        nvx.structs.Voltages
+            voltages. See nvx.structs
         """
         voltages = Voltages()
         handle_error(raw.NVXGetVoltages(self.device_handle, ctypes.byref(voltages)))
@@ -675,7 +699,7 @@ class Device:
 
     @property
     def active_shield_gain(self):
-        """Get gain in ActiveShield mode
+        """Get gain in ActiveShield mode.
 
         Returns
         -------
@@ -686,17 +710,17 @@ class Device:
 
     @active_shield_gain.setter
     def active_shield_gain(self, gain):
-        """Set gain in ActiveShield mode
+        """Set gain in ActiveShield mode.
         
         Parameters
         ----------
         gain : int
-            impedance settings in range [1, 100]. Default gain is 100.
+            Impedance settings in range [1, 100]. Default gain is 100.
             
         Raises
         ------
         ValueError
-            if gain is not in range [1, 100]
+            If gain is not in range [1, 100].
         """
         if not 1 <= gain <= 100:
             raise ValueError("gain must be in range [1, 100], got " + str(gain))
@@ -706,12 +730,12 @@ class Device:
 
     @property
     def polarization(self):
-        """Get polarization of the electrodes
+        """Get polarization of the electrodes.
 
         Returns
         -------
         list of float
-            polarisation of electrodes
+            Polarisation of electrodes.
         """
         # TODO: ask how many electrodes there are (assuming self.eeg_count + GND)
         buffer_size = self.eeg_count + 1
@@ -729,12 +753,12 @@ class Device:
 
     @property
     def sample_rate_count(self):
-        """Get device sample rate count
+        """Get device sample rate count.
 
         Returns
         -------
         int
-            sample rate count
+            Sample rate count.
         """
         count = ctypes.c_uint()
         handle_error(raw.NVXGetSampeRateCount(self.device_handle, ctypes.byref(count)))
@@ -742,12 +766,12 @@ class Device:
 
     @property
     def frequency_bandwidth(self):
-        """Get frequency bandwidth
+        """Get frequency bandwidth.
 
         Returns
         -------
-        list of structs.FrequencyBandwidth
-            frequency bandwidths. See structs.py
+        list of nvx.structs.FrequencyBandwidth
+            Frequency bandwidths. See nvx.structs
         """
         # TODO: ask how large the array should be (assuming self.eeg_count + GND)
         buffer_size = self.eeg_count + 1
@@ -761,14 +785,19 @@ class Device:
 
     @property
     def _channel_states(self):
-        """Get enabled channels
-        This function is not recommended for external use. Consider using get_eeg_channel_state or 
-        get_aux_channel_state instead
+        """Get enabled channels.
+        This function is not recommended for external use. Consider using Device.get_eeg_channel_state or
+        Device.get_aux_channel_state instead.
 
         Returns
         -------
         list of bool
-            channel states
+            Channel states.
+
+        See Also
+        --------
+        nvx.device.Device.get_eeg_channel_state
+        nvx.device.Device.get_aux_channel_state
         """
         buffer_size = self.eeg_count + self.aux_count
         buffer_size_bytes = buffer_size * ctypes.sizeof(ctypes.c_bool)
@@ -804,8 +833,8 @@ class Device:
 
         Returns
         -------
-        ChannelStatesView
-            A view into channel states. See channel_states_view.py
+        nvx.channel_states_view.ChannelStatesView
+            A view into channel states. See nvx.channel_states_view
         """
         return ChannelStatesView(self)
 
@@ -822,7 +851,10 @@ class Device:
         handle_error(raw.NVXSetPll(self.device_handle, ctypes.byref(value)))
 
     def __del__(self):
-        # Errors in the destructor are ignored
+        """Destroy the device.
+        On destruction, the device attempts to stop and close itself, but no error checking and/or recovery is
+        performed.
+        """
         if self.is_running:
             raw.NVXStop(self.device_handle)
         raw.NVXClose(self.index)

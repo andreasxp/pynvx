@@ -1,16 +1,17 @@
+"""A collection of classes for viewing EEG and AUX channel states (on/off)."""
 import ctypes
 from .channel_names import eeg_channel, aux_channel
 
 
 class EegStatesView:
-    """A view into eeg channels' states. (on/off)"""
     def __init__(self, device):
-        """Constructor
-        You should not construct this by yourself. This class is returned by ChannelStatesView eeg property.
+        """A view into EEG channels' states. (on/off).
+        This class is not intended to be constructed manually. An instance is returned by `ChannelStatesView.eeg`
+        property.
 
         Parameters
         ----------
-        device : nvx.Device
+        device : Device
             Device from which the states are requested.
         """
         self.device = device
@@ -18,18 +19,18 @@ class EegStatesView:
     def __len__(self):
         return self.device.eeg_count
 
-    def __getitem__(self, idx):
-        """Get an eeg channel state using a channel index.
+    def __getitem__(self, index):
+        """Get an EEG channel state using a channel index.
 
         Parameters
         ----------
-        idx : int
+        index : int
             Channel index
 
         Raises
         ------
         IndexError
-            If idx is not in range [0, len(self))
+            If index is not in range [0, len(self))
 
         Returns
         -------
@@ -37,19 +38,19 @@ class EegStatesView:
             requested channel's state (on/off)
         """
         size = len(self)
-        if not 0 <= idx < size:
-            raise IndexError("no channel with index " + str(idx) +
-                             " (only " + str(size) + " eeg channels present)")
+        if not 0 <= index < size:
+            raise IndexError("no channel with index " + str(index) +
+                             " (only " + str(size) + " EEG channels present)")
 
-        return self.device._channel_states[idx]
+        return self.device._channel_states[index]
 
-    def __setitem__(self, idx, value):
-        """Set an eeg channel state (on/off).
+    def __setitem__(self, index, value):
+        """Set an EEG channel state (on/off).
         This function can only be called when the device is not running.
 
         Parameters
         ----------
-        idx : int
+        index : int
             Channel index
         value : bool
             State to set
@@ -57,7 +58,7 @@ class EegStatesView:
         Raises
         ------
         IndexError
-            If idx is not in range [0, len(self))
+            If index is not in range [0, len(self))
         RuntimeError
             If the device is running when the function is called
         """
@@ -65,24 +66,24 @@ class EegStatesView:
             raise RuntimeError("cannot set a channel state when the device is running")
 
         size = len(self)
-        if not 0 <= idx < size:
-            raise IndexError("no channel with index " + str(idx) +
+        if not 0 <= index < size:
+            raise IndexError("no channel with index " + str(index) +
                              " (only " + str(size) + " eeg channels present)")
 
         states = self.device._channel_states
-        states[idx] = ctypes.c_bool(value)
+        states[index] = ctypes.c_bool(value)
         self.device._channel_states = states
 
 
 class AuxStatesView:
-    """A view into aux channels' states. (on/off)"""
     def __init__(self, device):
-        """Constructor
-        You should not construct this by yourself. This class is returned by ChannelStatesView aux property.
+        """A view into aux channels' states. (on/off).
+        This class is not intended to be constructed manually. An instance is returned by `ChannelStatesView.aux`
+        property.
 
         Parameters
         ----------
-        device : nvx.Device
+        device : nvx.device.Device
             Device from which the states are requested.
         """
         self.device = device
@@ -90,18 +91,18 @@ class AuxStatesView:
     def __len__(self):
         return self.device.aux_count
 
-    def __getitem__(self, idx):
-        """Get an aux channel state using a channel index.
+    def __getitem__(self, index):
+        """Get an AUX channel state using a channel index.
 
         Parameters
         ----------
-        idx : int
+        index : int
             Channel index
 
         Raises
         ------
         IndexError
-            If idx is not in range [0, len(self))
+            If index is not in range [0, len(self))
 
         Returns
         -------
@@ -109,19 +110,19 @@ class AuxStatesView:
             requested channel's state (on/off)
         """
         size = len(self)
-        if not 0 <= idx < size:
-            raise IndexError("no channel with index " + str(idx) +
-                             " (only " + str(size) + " aux channels present)")
+        if not 0 <= index < size:
+            raise IndexError("no channel with index " + str(index) +
+                             " (only " + str(size) + " AUX channels present)")
 
-        return self.device._channel_states[self.device.eeg_count + idx]
+        return self.device._channel_states[self.device.eeg_count + index]
 
-    def __setitem__(self, idx, value):
-        """Set an aux channel state (on/off).
+    def __setitem__(self, index, value):
+        """Set an AUX channel state (on/off).
         This function can only be called when the device is not running.
 
         Parameters
         ----------
-        idx : int
+        index : int
             Channel index
         value : bool
             State to set
@@ -129,73 +130,73 @@ class AuxStatesView:
         Raises
         ------
         IndexError
-            If idx is not in range [0, len(self))
+            If index is not in range [0, len(self)).
         RuntimeError
-            If the device is running when the function is called
+            If the device is running when the function is called.
         """
         if self.device.is_running:
             raise RuntimeError("cannot set a channel state when the device is running")
 
         size = len(self)
-        if not 0 <= idx < size:
-            raise IndexError("no channel with index " + str(idx) +
+        if not 0 <= index < size:
+            raise IndexError("no channel with index " + str(index) +
                              " (only " + str(size) + " aux channels present)")
 
         states = self.device._channel_states
-        states[self.device.eeg_count + idx] = ctypes.c_bool(value)
+        states[self.device.eeg_count + index] = ctypes.c_bool(value)
         self.device._channel_states = states
 
 
 class ChannelStatesView:
-    """Provides a view into a device's channels' states.
-    States can be accessed in two ways:
-    view['T7'] - by channel name (either eeg or aux)
-    view.eeg[0] - by index (or view.aux[0] for aux channels)
-    """
     def __init__(self, device):
-        """Constructor
-        You should not construct this by yourself. This class is returned by device's channel_states property.
+        """Provides a view into a device's channels' states.
+        States can be accessed in two ways:
+        - view['T7'] - by channel name (either EEG or AUX)
+        - view.eeg[0] - by index (or view.aux[0] for AUX channels)
+
+        This class is not intended to be constructed manually. An instance is returned by Device.channel_states
+        property.
 
         Parameters
         ----------
-        device : nvx.Device
+        device : nvx.device.Device
             Device from which the states are requested.
         """
         self.device = device
 
     @property
     def eeg(self):
-        """Get eeg channels' states"""
+        """Get EEG channels' states."""
         return EegStatesView(self.device)
 
     @property
     def aux(self):
-        """Get aux channels' states"""
+        """Get AUX channels' states."""
         return AuxStatesView(self.device)
 
     def __iter__(self):
-        """Returns an iterator to the EEG+AUX channel keys."""
+        """An iterator to the EEG+AUX channel keys."""
         for key in eeg_channel:
             yield key
         for key in aux_channel:
             yield key
 
     def keys(self):
-        """Returns an iterator to the EEG+AUX channel keys."""
+        """An iterator to the EEG+AUX channel keys."""
         for key in eeg_channel:
             yield key
         for key in aux_channel:
             yield key
 
     def values(self):
-        """Returns an iterator to the EEG+AUX channel states."""
+        """An iterator to the EEG+AUX channel states."""
         for key in eeg_channel:
             yield self[key]
         for key in aux_channel:
             yield self[key]
 
     def items(self):
-        """Returns an iterator to the EEG+AUX (keys, values)."""
+        """An iterator to the EEG+AUX (keys, values)."""
         for key in eeg_channel:
             yield (key, self[key])
         for key in aux_channel:
@@ -203,17 +204,21 @@ class ChannelStatesView:
 
     def __contains__(self, key):
         """Checks if a channel with a particular name exists.
-        See channel_names.py for a list of available names.
 
         Parameters
         ----------
         key : str
-            Name of an EEG or AUX channel
+            Name of an EEG or AUX channel.
 
         Returns
         -------
         bool
-            True, if this channel exists, False otherwise
+            True if this channel exists, False otherwise.
+
+        See Also
+        --------
+        nvx.channel_names
+            A list of available channel names.
         """
         if key in eeg_channel or key in aux_channel:
             return True
@@ -230,12 +235,12 @@ class ChannelStatesView:
         Raises
         ------
         KeyError
-            if name is not a valid eeg/aux channel name
+            If name is not a valid EEG/AUX channel name.
 
         Returns
         -------
         bool
-            requested channel's state (on/off)
+            Requested channel's state (on/off).
         """
         if key in eeg_channel:
             return self.eeg[eeg_channel[key]]
@@ -255,7 +260,7 @@ class ChannelStatesView:
         Raises
         ------
         KeyError
-            if name is not a valid eeg/aux channel name
+            If name is not a valid EEG/AUX channel name.
         """
         if key in eeg_channel:
             self.eeg[eeg_channel[key]] = value

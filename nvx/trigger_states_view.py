@@ -1,3 +1,4 @@
+"""Array-like views into device's triggers."""
 import ctypes
 from .bit_view import BitView
 from .utility import handle_error
@@ -5,18 +6,22 @@ from .base import raw
 
 
 class ITriggerStatesView:
-    """Provides an array-like view to device's input triggers.
-    Input triggers cannot be set, thus this class does not have __setitem__.
-    """
     def __init__(self, device):
-        """Constructor
-        Unlike OTriggerStatesView, this class stores a cached version of triggers and not a device to look them up.
-        Since input triggers cannot be modified, they can be safely copied in the constructor.
+        """Provides an array-like view to device's input triggers.
+        Input triggers cannot be set, thus this class does not have __setitem__.
+
+        This class is not intended to be constructed manually. An instance is returned by TriggerStatesView.input
+        property.
 
         Parameters
         ----------
-        device : device.Device
-            NVX device. See device.py
+        device : nvx.device.Device
+            NVX device. See nvx.device
+
+        Notes
+        -----
+        Unlike OTriggerStatesView, this class stores a cached version of triggers and not a device to look them up.
+        Since input triggers cannot be modified, they can be safely copied in the constructor.
         """
         self.triggers = BitView(ctypes.c_uint(0), 0, 8)  # Observe only bits [0, 8)
         handle_error(raw.NVXGetTriggers(device.device_handle, ctypes.byref(self.triggers.value)))
@@ -27,34 +32,35 @@ class ITriggerStatesView:
     def __str__(self):
         return str(self.triggers)
 
-    def __getitem__(self, idx):
-        """Get a trigger state
+    def __getitem__(self, index):
+        """Get a trigger state.
 
         Parameters
         ----------
-        idx : int
+        index : int
 
         Returns
         -------
         bool
             trigger state
         """
-        return self.triggers[idx]
+        return self.triggers[index]
 
     # No __setitem__: input triggers are const
 
 
 class OTriggerStatesView:
-    """Provides an array-like view to device's output triggers.
-    Unlike ITriggerStatesView, output triggers can be modified.
-    """
     def __init__(self, device):
-        """Constructor
+        """Provides an array-like view to device's output triggers.
+        Unlike ITriggerStatesView, output triggers can be modified.
+
+        This class is not intended to be constructed manually. An instance is returned by TriggerStatesView.output
+        property.
 
         Parameters
         ----------
-        device : device.Device
-            NVX device. See device.py
+        device : nvx.device.Device
+            NVX device. See nvx.device
         """
         self.device = device
 
@@ -64,30 +70,33 @@ class OTriggerStatesView:
     def __str__(self):
         return str(list(self))
 
-    def __getitem__(self, idx):
-        """Get a trigger state
-        Unfortunately, trigger values cannot be cached, since output triggers can be modified from different instances
-        of OTriggerStatesView.
+    def __getitem__(self, index):
+        """Get a trigger state.
 
         Parameters
         ----------
-        idx : int
+        index : int
 
         Returns
         -------
         bool
             trigger state
+
+        Notes
+        -----
+        Unfortunately, trigger values cannot be cached, since output triggers can be modified from different instances
+        of OTriggerStatesView.
         """
         triggers = BitView(ctypes.c_uint(0), 8, 16)  # Observe only bits [8, 16)
         handle_error(raw.NVXGetTriggers(self.device.device_handle, ctypes.byref(triggers.value)))
-        return triggers[idx]
+        return triggers[index]
 
-    def __setitem__(self, idx, x):
-        """Set an output trigger
+    def __setitem__(self, index, x):
+        """Set an output trigger.
 
         Parameters
         ----------
-        idx : int
+        index : int
         x : bool
 
         Raises
@@ -98,20 +107,28 @@ class OTriggerStatesView:
         triggers = BitView(ctypes.c_uint(0), 8, 16)  # Observe only bits [8, 16)
         handle_error(raw.NVXGetTriggers(self.device.device_handle, ctypes.byref(triggers.value)))
 
-        triggers[idx] = x
+        triggers[index] = x
 
         handle_error(raw.NVXSetTriggers(self.device.device_handle, triggers.value))
 
 
 class TriggerStatesView:
-    """Provides a view into device's triggers.
-    This is a convenience class, provided to access device's triggers in a more pythonic way.
-    Triggers can be accessed in 3 ways:
-    - triggers['i5'] - access input trigger 5 (or 'o' for output triggers)
-    - triggers['input', 5] - for a more verbose version of the previous command
-    - triggers.input[5] - using properties <input> and <output> to access or store triggers separately.
-    """
     def __init__(self, device):
+        """Provides a view into device's triggers.
+
+        This is a convenience class, provided to access device's triggers in a more pythonic way.
+
+        Triggers can be accessed in 3 ways:
+
+        - `triggers['i5']` - access input trigger 5 (or 'o' for output triggers)
+        - `triggers['input', 5]` - for a more verbose version of the previous command
+        - `triggers.input[5]` - using properties `input` and `output` to access or store triggers separately.
+
+        Parameters
+        ----------
+        device : nvx.device.Device
+            NVX device. See nvx.device
+        """
         self.device = device
 
     @property
@@ -160,7 +177,7 @@ class TriggerStatesView:
         Returns
         -------
         bool
-            True, if this trigger exists, False otherwise
+            True, if this trigger exists, False otherwise.
         """
         try:
             self._unpack_key(key)
@@ -180,11 +197,11 @@ class TriggerStatesView:
         Raises
         ------
         TypeError
-            if key is not a tuple or a string
+            If key is not a tuple or a string.
         KeyError
-            if the key-part (input/output) is not recognised
+            If the key-part (input/output) is not recognised.
         IndexError
-            if the key-part was recognised, but the index-part was not recognised or incorrect.
+            If the key-part was recognised, but the index-part was not recognised or incorrect.
         """
         is_output = False
         index = 0
@@ -238,7 +255,7 @@ class TriggerStatesView:
         Returns
         -------
         bool
-            Requested trigger's state
+            Requested trigger's state.
         """
         is_output, index = self._unpack_key(key)
 
@@ -249,6 +266,7 @@ class TriggerStatesView:
 
     def __setitem__(self, key, value):
         """Set a trigger state.
+
         Keys follow the same syntax as in __getitem__, but note that input triggers cannot be set, and
         KeyError will be raised if you try.
 

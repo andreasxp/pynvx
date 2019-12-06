@@ -1,6 +1,4 @@
-"""
-Dictionaries that map NVX channel names to their indexes in samples.
-
+"""Dictionaries that map NVX channel names to their indexes in samples.
 """
 
 eeg_channel = {

@@ -1,7 +1,9 @@
+"""Utility functions."""
 import sys
 
 
 def handle_error(error_code):
+    """Convert error code as defined in the driver to user-friendly python exceptions."""
     if error_code == -1:
         raise RuntimeError("invalid handle (such handle not present now)")
     if error_code == -2:
@@ -13,4 +15,11 @@ def handle_error(error_code):
 
 
 def is_64bit():
+    """Check the system bit-ness.
+
+    Returns
+    -------
+    bool
+        True if the system is 64 bit, False otherwise.
+    """
     return sys.maxsize > 2 ** 32
