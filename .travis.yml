@@ -3,7 +3,7 @@ python: 3.7
 branches: master
 
 install:
-    - pip install pdoc
+    - pip install pdoc3
     - pip install -e .
 
 script: true
