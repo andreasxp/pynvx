@@ -4,10 +4,12 @@ branches: master
 
 install:
     - pip install pdoc
+    - pip install -e .
 
 script: true
 
 before_deploy:
+    - ls -l
     - pdoc --html --force --output-dir docs nvx
     - mv docs/nvx/* docs
     - rmdir docs/nvx
