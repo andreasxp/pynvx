@@ -7,9 +7,9 @@ from .structs import Version
 """Raw dll for direct calls"""
 raw = None
 if is_64bit():
-    raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/Dll/x64/Release/NVX136.dll")
+    raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/dll/x64/Release/NVX136.dll")
 else:
-    raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/Dll/x86/Release/NVX136.dll")
+    raw = ctypes.cdll.LoadLibrary(os.path.dirname(__file__) + "/dll/x86/Release/NVX136.dll")
 
 
 def get_dll_version():
