@@ -22,7 +22,7 @@ try:
     dev.start()  # start collecting data
 
     while True:
-        samples = dev.pull_chunk()  # Get one sample of data
+        samples = dev.pull_chunk()  # Get all collected data samples
         for sample in samples:   # While there is sample to recieve, do stuff with it
             print('EEG1:{:>8}|EEG2:{:>8}|EEG3:{:>8}|AUX1:{:>8}|COUNT:{:>8}'.format(
                 sample.eeg_data(0),
