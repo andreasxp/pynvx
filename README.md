@@ -39,4 +39,4 @@ dev.stop()
 ```
 
 ## License
-`pynvx` is licenced under the MIT license. It is free for personal commercial use. Note that the files listed under `nvx/dll` belong to [Medical Computer Systems Ltd](https://mks.ru/en/index/) and are subject to their own license and copyright.
+`pynvx` is licenced under the MIT license. It is free for personal and commercial use. Note that the files listed under `nvx/dll` belong to [Medical Computer Systems Ltd](https://mks.ru/en/index/) and are subject to their own license and copyright.
